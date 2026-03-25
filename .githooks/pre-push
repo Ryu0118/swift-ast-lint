@@ -1,0 +1,59 @@
+#!/bin/sh
+# pre-push hook: run periphery scan to detect redundant public declarations.
+# Blocks push when redundant public accessibility is found (same policy as strict mode).
+
+SRCROOT=$(git rev-parse --show-toplevel)
+PERIPHERY="$SRCROOT/.nest/bin/periphery"
+
+# Skip if periphery is not installed
+if [ ! -x "$PERIPHERY" ]; then
+  echo "[pre-push] periphery not found. Skipping unused code check."
+  echo "[pre-push] Install with: make install-commands (or: nest bootstrap nestfile.yaml)"
+  exit 0
+fi
+
+# Skip if config is missing
+if [ ! -f "$SRCROOT/.periphery.yml" ]; then
+  echo "[pre-push] .periphery.yml not found. Skipping periphery scan."
+  exit 0
+fi
+
+echo "[pre-push] Running periphery scan for unused code..."
+
+# Run scan; --quiet suppresses progress noise; filter known noisy warnings
+SCAN_OUTPUT=$(cd "$SRCROOT" && "$PERIPHERY" scan --quiet 2>/dev/null | grep -v "^warning: Declaration conflict" | grep -v "^warning: When using")
+
+if [ -n "$SCAN_OUTPUT" ]; then
+  REDUNDANT_PUBLIC=$(echo "$SCAN_OUTPUT" | grep "Redundant public" | wc -l | tr -d ' ')
+  UNUSED=$(echo "$SCAN_OUTPUT" | grep -v "Redundant public" | wc -l | tr -d ' ')
+
+  echo ""
+  echo "============================================"
+  echo "[pre-push] Periphery scan results:"
+  echo "  Redundant public accessibility: $REDUNDANT_PUBLIC"
+  echo "  Other unused code:              $UNUSED (warning only)"
+  echo "============================================"
+
+  # Block push when redundant public is present
+  if [ "$REDUNDANT_PUBLIC" -gt 0 ]; then
+    echo ""
+    echo "Redundant public declarations found:"
+    echo "$SCAN_OUTPUT" | grep "Redundant public"
+    echo ""
+    echo "[pre-push] Push blocked. Fix redundant public declarations before pushing."
+    echo "[pre-push] If false positive, add to .periphery.yml report_exclude."
+    exit 1
+  fi
+
+  # Other findings are warnings only (do not block)
+  if [ "$UNUSED" -gt 0 ]; then
+    echo ""
+    echo "Other unused code (warnings only, top 10):"
+    echo "$SCAN_OUTPUT" | grep -v "Redundant public" | head -10
+    echo ""
+    echo "[pre-push] These are warnings only. Push will proceed."
+    echo "[pre-push] Fix with: .nest/bin/periphery scan"
+  fi
+fi
+
+exit 0

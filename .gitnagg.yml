@@ -1,0 +1,39 @@
+version: 1
+resolution: first-match
+exit_code: 2
+
+rules:
+  - severity: error
+    message: Stop. This diff is already too large for one commit. Split it before continuing.
+    when:
+      or:
+        - metric: added
+          gte: 400
+        - metric: deleted
+          gte: 150
+        - metric: files
+          gte: 12
+
+  - severity: warning
+    message: Good checkpoint. Commit before the diff gets harder to reason about.
+    when:
+      and:
+        - metric: added
+          gte: 120
+        - metric: files
+          gte: 4
+
+  - severity: warning
+    message: The diff is spreading across many files. Make a checkpoint commit soon.
+    when:
+      or:
+        - metric: added
+          gte: 200
+        - metric: files
+          gte: 8
+
+  - severity: info
+    message: You have enough local change to justify a checkpoint commit.
+    when:
+      metric: added
+      gte: 80

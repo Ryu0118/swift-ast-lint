@@ -1,0 +1,14 @@
+# SwiftFormat configuration for swift-ast-lint
+
+--swiftversion 6.2
+--indent 4
+--indentcase false
+--stripunusedargs closure-only
+
+--disable spaceAroundParens
+--disable swiftTestingTestCaseNames
+
+--exclude .build
+--exclude .swiftpm
+--exclude "**/.build/**"
+--exclude "**/.swiftpm/**"

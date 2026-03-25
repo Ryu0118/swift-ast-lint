@@ -1,0 +1,15 @@
+# Local dev + CI: `make install-commands` / `./scripts/nest.sh bootstrap nestfile.yaml`.
+nestPath: ./.nest
+targets:
+  - reference: nicklockwood/SwiftFormat
+    version: 0.60.1
+    assetName: swiftformat.artifactbundle.zip
+    checksum: cb4738085cf39c08da00b79b4a3683e77458ca12909934d04e5087d8e73f5e43
+  - reference: realm/SwiftLint
+    version: 0.63.2
+    assetName: SwiftLintBinary.artifactbundle.zip
+    checksum: 12befab676fc972ffde2ec295d016d53c3a85f64aabd9c7fee0032d681e307e9
+  - reference: Ryu0118/gitnagg
+    version: 0.2.1
+    assetName: gitnagg-0.2.1.artifactbundle.zip
+    checksum: f43282a2cffffbd396f384843a5b1b80e62beb1752c46ea4bf8802cf28a95d71
