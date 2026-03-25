@@ -1,7 +1,7 @@
-import Testing
-import Foundation
 import FileManagerProtocol
+import Foundation
 @testable import SwiftASTLintScaffold
+import Testing
 
 @Suite("Scaffold package generation: swift package init, file templates, nested directories, and idempotent overwrite")
 struct ScaffoldTests {
@@ -11,11 +11,11 @@ struct ScaffoldTests {
             let path = dir.appendingPathComponent("MyLinter").path
             try await Scaffold.generate(at: path, name: "MyLinter")
 
-            let fm = FileManager.default
-            #expect(fm.fileExists(atPath: "\(path)/Package.swift"))
-            #expect(fm.fileExists(atPath: "\(path)/Sources/Rules/Rules.swift"))
-            #expect(fm.fileExists(atPath: "\(path)/Sources/swift-ast-lint/main.swift"))
-            #expect(fm.fileExists(atPath: "\(path)/.swift-ast-lint.yml"))
+            let fileManager = FileManager.default
+            #expect(fileManager.fileExists(atPath: "\(path)/Package.swift"))
+            #expect(fileManager.fileExists(atPath: "\(path)/Sources/Rules/Rules.swift"))
+            #expect(fileManager.fileExists(atPath: "\(path)/Sources/swift-ast-lint/main.swift"))
+            #expect(fileManager.fileExists(atPath: "\(path)/.swift-ast-lint.yml"))
         }
     }
 

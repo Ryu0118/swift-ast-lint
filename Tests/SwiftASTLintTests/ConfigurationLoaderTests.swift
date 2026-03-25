@@ -1,7 +1,7 @@
-import Testing
-import Foundation
 import FileManagerProtocol
+import Foundation
 @testable import SwiftASTLint
+import Testing
 
 @Suite("ConfigurationLoader YAML parsing: valid configs, empty files, malformed input, and non-dictionary rejection")
 struct ConfigurationLoaderTests {

@@ -1,11 +1,11 @@
 import ArgumentParser
-import SwiftASTLintScaffold
 import Foundation
+import SwiftASTLintScaffold
 
 struct InitCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "init",
-        abstract: "Generate a new linter package"
+        abstract: "Generate a new linter package",
     )
 
     @Option(name: .long, help: "Directory to generate the linter package")

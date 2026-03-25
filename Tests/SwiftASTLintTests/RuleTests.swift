@@ -1,6 +1,6 @@
-import Testing
-import SwiftSyntax
 @testable import SwiftASTLint
+import SwiftSyntax
+import Testing
 
 @Suite("Rule construction: id, severity, include/exclude glob patterns with sensible defaults")
 struct RuleTests {
@@ -17,7 +17,7 @@ struct RuleTests {
             id: "test",
             severity: .error,
             include: ["Sources/**"],
-            exclude: ["**/*Generated.swift"]
+            exclude: ["**/*Generated.swift"],
         ) { _, _ in }
         #expect(rule.include == ["Sources/**"])
         #expect(rule.exclude == ["**/*Generated.swift"])

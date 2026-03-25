@@ -1,5 +1,5 @@
-import Testing
 @testable import SwiftASTLint
+import Testing
 
 @Suite("GlobPattern matching: *, **, ? wildcards and multi-pattern union for include/exclude filtering")
 struct GlobPatternTests {

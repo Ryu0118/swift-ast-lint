@@ -1,8 +1,8 @@
-import Foundation
-import SwiftSyntax
-import SwiftParser
 import ArgumentParser
 import AsyncOperations
+import Foundation
+import SwiftParser
+import SwiftSyntax
 
 public struct LintResult: Sendable {
     public let diagnostics: [Diagnostic]
@@ -14,7 +14,7 @@ public struct LintResult: Sendable {
 public struct LintCommand: ParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "swift-ast-lint",
-        abstract: "Run SwiftAST lint rules"
+        abstract: "Run SwiftAST lint rules",
     )
 
     @Argument(help: "Paths to lint (default: current directory)")
@@ -23,11 +23,12 @@ public struct LintCommand: ParsableCommand {
     @Option(name: .long, help: "Path to config file")
     var config: String = ".swift-ast-lint.yml"
 
+    // swiftlint:disable:next identifier_name
     nonisolated(unsafe) static var _rules: RuleSet?
 
     public static func lint(_ rules: RuleSet) {
         _rules = rules
-        Self.main()
+        main()
     }
 
     public init() {}
@@ -82,13 +83,14 @@ public struct LintCommand: ParsableCommand {
         nonisolated(unsafe) var result: Result<T, any Error>?
         Task {
             do {
-                result = .success(try await body())
+                result = try await .success(body())
             } catch {
                 result = .failure(error)
             }
             semaphore.signal()
         }
         semaphore.wait()
+        // swiftlint:disable:next force_unwrapping
         return try result!.get()
     }
 
@@ -96,7 +98,7 @@ public struct LintCommand: ParsableCommand {
     static func lintFiles(
         rules: RuleSet,
         config: Configuration?,
-        rootPath: String
+        rootPath: String,
     ) async throws -> LintResult {
         let allSwiftFiles = try collectSwiftFiles(rootPath: rootPath)
         let ymlFiltered = filterByConfig(files: allSwiftFiles, config: config, rootPath: rootPath)
@@ -104,15 +106,17 @@ public struct LintCommand: ParsableCommand {
             files: ymlFiltered,
             include: rules.globalInclude,
             exclude: rules.globalExclude,
-            rootPath: rootPath
+            rootPath: rootPath,
         )
 
         // Process files concurrently (up to 10 at a time)
-        let fileDiagnostics = try await ruleSetFiltered.asyncMap(numberOfConcurrentTasks: 10) { filePath -> [Diagnostic] in
+        let fileDiagnostics = try await ruleSetFiltered.asyncMap(
+            numberOfConcurrentTasks: 10,
+        ) { filePath -> [Diagnostic] in
             await Self.lintSingleFile(filePath: filePath, rules: rules, rootPath: rootPath)
         }
 
-        var allDiagnostics = fileDiagnostics.flatMap { $0 }
+        var allDiagnostics = fileDiagnostics.flatMap(\.self)
         allDiagnostics.sort {
             if $0.filePath != $1.filePath { return $0.filePath < $1.filePath }
             return $0.line < $1.line
@@ -125,7 +129,7 @@ public struct LintCommand: ParsableCommand {
     private static func lintSingleFile(
         filePath: String,
         rules: RuleSet,
-        rootPath: String
+        rootPath: String,
     ) -> [Diagnostic] {
         let source: String
         do {
@@ -139,21 +143,15 @@ public struct LintCommand: ParsableCommand {
         let converter = SourceLocationConverter(fileName: filePath, tree: sourceFile)
         var diagnostics: [Diagnostic] = []
 
-        for rule in rules.rules {
-            let relativePath = makeRelative(filePath, to: rootPath)
+        let relativePath = makeRelative(filePath, to: rootPath)
+        let applicableRules = rules.rules.filter { ruleApplies($0, to: relativePath) }
 
-            if !rule.include.isEmpty {
-                guard GlobPattern.matchesAny(patterns: rule.include, path: relativePath) else { continue }
-            }
-            if GlobPattern.matchesAny(patterns: rule.exclude, path: relativePath) {
-                continue
-            }
-
+        for rule in applicableRules {
             let context = LintContext(
                 filePath: filePath,
                 sourceLocationConverter: converter,
                 ruleID: rule.id,
-                defaultSeverity: rule.severity
+                defaultSeverity: rule.severity,
             )
             rule.check(sourceFile, context)
             diagnostics.append(contentsOf: context.collectDiagnostics())
@@ -164,9 +162,21 @@ public struct LintCommand: ParsableCommand {
 
     // MARK: - Private
 
+    private static func ruleApplies(_ rule: Rule, to relativePath: String) -> Bool {
+        if !rule.include.isEmpty {
+            guard GlobPattern.matchesAny(patterns: rule.include, path: relativePath) else {
+                return false
+            }
+        }
+        if GlobPattern.matchesAny(patterns: rule.exclude, path: relativePath) {
+            return false
+        }
+        return true
+    }
+
     private static func collectSwiftFiles(rootPath: String) throws -> [String] {
-        let fm = FileManager.default
-        guard let enumerator = fm.enumerator(atPath: rootPath) else {
+        let fileManager = FileManager.default
+        guard let enumerator = fileManager.enumerator(atPath: rootPath) else {
             return []
         }
         var files: [String] = []
@@ -181,7 +191,7 @@ public struct LintCommand: ParsableCommand {
     private static func filterByConfig(
         files: [String],
         config: Configuration?,
-        rootPath: String
+        rootPath: String,
     ) -> [String] {
         guard let config else { return files }
 
@@ -205,7 +215,7 @@ public struct LintCommand: ParsableCommand {
         files: [String],
         include: [String],
         exclude: [String],
-        rootPath: String
+        rootPath: String,
     ) -> [String] {
         var filtered = files
         if !include.isEmpty {

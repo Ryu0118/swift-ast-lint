@@ -4,9 +4,9 @@ public struct RuleSet: Sendable {
     public let globalExclude: [String]
 
     public init(@RuleSetBuilder _ build: () -> [Rule]) {
-        self.rules = build()
-        self.globalInclude = []
-        self.globalExclude = []
+        rules = build()
+        globalInclude = []
+        globalExclude = []
     }
 
     private init(rules: [Rule], globalInclude: [String], globalExclude: [String]) {
@@ -43,6 +43,6 @@ public struct RuleSetBuilder {
     }
 
     public static func buildArray(_ components: [[Rule]]) -> [Rule] {
-        components.flatMap { $0 }
+        components.flatMap(\.self)
     }
 }

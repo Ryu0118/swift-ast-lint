@@ -1,11 +1,18 @@
-import Testing
-import SwiftSyntax
-import SwiftParser
-import Foundation
 import FileManagerProtocol
+import Foundation
 @testable import SwiftASTLint
+import SwiftParser
+import SwiftSyntax
+import Testing
 
-@Suite("LintCommand end-to-end: file traversal, intersection filtering (yml > RuleSet > Rule), sort order, and exit code mapping")
+// swiftlint:disable line_length force_unwrapping deep_nesting_control_flow
+
+@Suite(
+    """
+    LintCommand end-to-end: file traversal, \
+    intersection filtering (yml > RuleSet > Rule), sort order, and exit code mapping
+    """,
+)
 struct LintCommandTests {
     @Test("lint single file with one rule producing warning")
     func singleWarning() async throws {
@@ -42,9 +49,15 @@ struct LintCommandTests {
     @Test("yml excluded_paths filters files")
     func ymlExclude() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
-            let fm = FileManager.default
-            try fm.createDirectory(at: dir.appendingPathComponent("Sources"), withIntermediateDirectories: true)
-            try fm.createDirectory(at: dir.appendingPathComponent("Generated"), withIntermediateDirectories: true)
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(
+                at: dir.appendingPathComponent("Sources"),
+                withIntermediateDirectories: true,
+            )
+            try fileManager.createDirectory(
+                at: dir.appendingPathComponent("Generated"),
+                withIntermediateDirectories: true,
+            )
             try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
             try "let b = 2\n".write(to: dir.appendingPathComponent("Generated/b.swift"), atomically: true, encoding: .utf8)
 
@@ -63,9 +76,15 @@ struct LintCommandTests {
     @Test("Rule-level include restricts to specific files")
     func ruleInclude() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
-            let fm = FileManager.default
-            try fm.createDirectory(at: dir.appendingPathComponent("Sources"), withIntermediateDirectories: true)
-            try fm.createDirectory(at: dir.appendingPathComponent("Tests"), withIntermediateDirectories: true)
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(
+                at: dir.appendingPathComponent("Sources"),
+                withIntermediateDirectories: true,
+            )
+            try fileManager.createDirectory(
+                at: dir.appendingPathComponent("Tests"),
+                withIntermediateDirectories: true,
+            )
             try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
             try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
 
@@ -114,9 +133,15 @@ struct LintCommandTests {
     @Test("RuleSet globalInclude restricts file universe")
     func ruleSetGlobalInclude() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
-            let fm = FileManager.default
-            try fm.createDirectory(at: dir.appendingPathComponent("Sources"), withIntermediateDirectories: true)
-            try fm.createDirectory(at: dir.appendingPathComponent("Tests"), withIntermediateDirectories: true)
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(
+                at: dir.appendingPathComponent("Sources"),
+                withIntermediateDirectories: true,
+            )
+            try fileManager.createDirectory(
+                at: dir.appendingPathComponent("Tests"),
+                withIntermediateDirectories: true,
+            )
             try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
             try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
 
@@ -166,3 +191,5 @@ struct LintCommandTests {
         }
     }
 }
+
+// swiftlint:enable line_length force_unwrapping deep_nesting_control_flow

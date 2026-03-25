@@ -1,9 +1,14 @@
-import Testing
-import SwiftSyntax
-import SwiftParser
 @testable import SwiftASTLint
+import SwiftParser
+import SwiftSyntax
+import Testing
 
-@Suite("LintContext diagnostic collection: report accumulation, severity override, and file path tracking via @LintActor")
+@Suite(
+    """
+    LintContext diagnostic collection: \
+    report accumulation, severity override, and file path tracking via @LintActor
+    """,
+)
 struct LintContextTests {
     @LintActor
     private func makeContext(source: String, filePath: String = "/test.swift") -> (SourceFileSyntax, LintContext) {
@@ -13,16 +18,16 @@ struct LintContextTests {
             filePath: filePath,
             sourceLocationConverter: converter,
             ruleID: "test-rule",
-            defaultSeverity: .warning
+            defaultSeverity: .warning,
         )
         return (sourceFile, context)
     }
 
     @Test("report with default severity")
     @LintActor
-    func reportDefault() {
+    func reportDefault() throws {
         let (sourceFile, context) = makeContext(source: "let x = 1\n")
-        let node = sourceFile.statements.first!
+        let node = try #require(sourceFile.statements.first)
         context.report(on: node, message: "test message")
         let diagnostics = context.collectDiagnostics()
         #expect(diagnostics.count == 1)
@@ -34,9 +39,9 @@ struct LintContextTests {
 
     @Test("report with severity override")
     @LintActor
-    func reportOverride() {
+    func reportOverride() throws {
         let (sourceFile, context) = makeContext(source: "let x = 1\n")
-        let node = sourceFile.statements.first!
+        let node = try #require(sourceFile.statements.first)
         context.report(on: node, message: "err", severity: .error)
         let diagnostics = context.collectDiagnostics()
         #expect(diagnostics[0].severity == .error)

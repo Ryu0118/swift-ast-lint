@@ -5,7 +5,7 @@ public enum ConfigurationError: Error {
     case invalidFormat
 }
 
-public struct ConfigurationLoader {
+public enum ConfigurationLoader {
     public static func load(from path: String) throws -> Configuration {
         let content = try String(contentsOfFile: path, encoding: .utf8)
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

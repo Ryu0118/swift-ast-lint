@@ -1,20 +1,44 @@
-import Testing
-import SwiftSyntax
-import SwiftParser
 @testable import SwiftASTLint
+import SwiftParser
+import SwiftSyntax
+import Testing
 
-@Suite("Rule examples from spec: large-public-type-per-file and max-nesting-depth validated against inline Swift sources")
+// swiftlint:disable line_length deep_nesting_control_flow
+
+@Suite(
+    """
+    Rule examples from spec: large-public-type-per-file \
+    and max-nesting-depth validated against inline Swift sources
+    """,
+)
 struct RuleExampleTests {
+    // MARK: - Helpers
+
+    @LintActor
+    private func makeLintContext(
+        source: String,
+        filePath: String = "test.swift",
+    ) -> (SourceFileSyntax, LintContext) {
+        let parsed = Parser.parse(source: source)
+        let converter = SourceLocationConverter(fileName: filePath, tree: parsed)
+        let context = LintContext(
+            filePath: filePath,
+            sourceLocationConverter: converter,
+            ruleID: "test",
+            defaultSeverity: .error,
+        )
+        return (parsed, context)
+    }
 
     // MARK: - single-large-public-type-per-file
 
     private func largePubTypeRule() -> Rule {
         Rule(id: "single-large-public-type-per-file", severity: .error) { file, context in
-            let topLevelDecls = file.statements.compactMap { statement -> (any DeclGroupSyntax)? in
-                if let c = statement.item.as(ClassDeclSyntax.self) { return c }
-                if let s = statement.item.as(StructDeclSyntax.self) { return s }
-                if let e = statement.item.as(EnumDeclSyntax.self) { return e }
-                if let a = statement.item.as(ActorDeclSyntax.self) { return a }
+            let topLevelDecls = file.statements.compactMap { stmt -> (any DeclGroupSyntax)? in
+                if let cls = stmt.item.as(ClassDeclSyntax.self) { return cls }
+                if let str = stmt.item.as(StructDeclSyntax.self) { return str }
+                if let enm = stmt.item.as(EnumDeclSyntax.self) { return enm }
+                if let act = stmt.item.as(ActorDeclSyntax.self) { return act }
                 return nil
             }
             let large = topLevelDecls.filter { decl in
@@ -22,9 +46,10 @@ struct RuleExampleTests {
                     $0.name.tokenKind == .keyword(.public) || $0.name.tokenKind == .keyword(.package)
                 }
                 guard hasAccess else { return false }
-                let start = context.sourceLocationConverter.location(for: decl.memberBlock.leftBrace.positionAfterSkippingLeadingTrivia).line
-                let end = context.sourceLocationConverter.location(for: decl.memberBlock.rightBrace.positionAfterSkippingLeadingTrivia).line
-                return (end - start - 1) >= 50
+                let converter = context.sourceLocationConverter
+                let startLine = converter.location(for: decl.memberBlock.leftBrace.positionAfterSkippingLeadingTrivia).line
+                let endLine = converter.location(for: decl.memberBlock.rightBrace.positionAfterSkippingLeadingTrivia).line
+                return (endLine - startLine - 1) >= 50
             }
             guard large.count > 1 else { return }
             for decl in large {
@@ -37,9 +62,7 @@ struct RuleExampleTests {
     @LintActor
     func singleLargeType() {
         let source = "public struct A {\n" + String(repeating: "    var x = 1\n", count: 60) + "}\n"
-        let file = Parser.parse(source: source)
-        let converter = SourceLocationConverter(fileName: "test.swift", tree: file)
-        let ctx = LintContext(filePath: "test.swift", sourceLocationConverter: converter, ruleID: "test", defaultSeverity: .error)
+        let (file, ctx) = makeLintContext(source: source)
         largePubTypeRule().check(file, ctx)
         #expect(ctx.collectDiagnostics().isEmpty)
     }
@@ -49,9 +72,7 @@ struct RuleExampleTests {
     func twoLargeTypes() {
         let typeA = "public struct A {\n" + String(repeating: "    var x = 1\n", count: 60) + "}\n"
         let typeB = "public class B {\n" + String(repeating: "    var y = 2\n", count: 60) + "}\n"
-        let file = Parser.parse(source: typeA + typeB)
-        let converter = SourceLocationConverter(fileName: "test.swift", tree: file)
-        let ctx = LintContext(filePath: "test.swift", sourceLocationConverter: converter, ruleID: "test", defaultSeverity: .error)
+        let (file, ctx) = makeLintContext(source: typeA + typeB)
         largePubTypeRule().check(file, ctx)
         #expect(ctx.collectDiagnostics().count == 2)
     }
@@ -67,18 +88,32 @@ struct RuleExampleTests {
                 init() {
                     super.init(viewMode: .sourceAccurate)
                 }
+
                 private func enter(_ node: some SyntaxProtocol) -> SyntaxVisitorContinueKind {
                     depth += 1
-                    if depth > maxDepth {
-                        violations.append((Syntax(node), depth))
-                    }
+                    if depth > maxDepth { violations.append((Syntax(node), depth)) }
                     return .visitChildren
                 }
-                private func leave() { depth -= 1 }
-                override func visit(_ node: IfExprSyntax) -> SyntaxVisitorContinueKind { enter(node) }
-                override func visitPost(_ node: IfExprSyntax) { leave() }
-                override func visit(_ node: ForStmtSyntax) -> SyntaxVisitorContinueKind { enter(node) }
-                override func visitPost(_ node: ForStmtSyntax) { leave() }
+
+                private func leave() {
+                    depth -= 1
+                }
+
+                override func visit(_ node: IfExprSyntax) -> SyntaxVisitorContinueKind {
+                    enter(node)
+                }
+
+                override func visitPost(_ node: IfExprSyntax) {
+                    leave()
+                }
+
+                override func visit(_ node: ForStmtSyntax) -> SyntaxVisitorContinueKind {
+                    enter(node)
+                }
+
+                override func visitPost(_ node: ForStmtSyntax) {
+                    leave()
+                }
             }
             let visitor = NestingVisitor()
             visitor.walk(file)
@@ -91,18 +126,8 @@ struct RuleExampleTests {
     @Test("no violation at depth 3")
     @LintActor
     func nestingOk() {
-        let source = """
-        func f() {
-            if true {
-                for _ in [1] {
-                    if true { let _ = 1 }
-                }
-            }
-        }
-        """
-        let file = Parser.parse(source: source)
-        let converter = SourceLocationConverter(fileName: "t.swift", tree: file)
-        let ctx = LintContext(filePath: "t.swift", sourceLocationConverter: converter, ruleID: "test", defaultSeverity: .error)
+        let source = "func f() {\n    if true {\n        for _ in [1] {\n            if true { let _ = 1 }\n        }\n    }\n}"
+        let (file, ctx) = makeLintContext(source: source)
         nestingRule().check(file, ctx)
         #expect(ctx.collectDiagnostics().isEmpty)
     }
@@ -110,21 +135,11 @@ struct RuleExampleTests {
     @Test("violation at depth 4")
     @LintActor
     func nestingViolation() {
-        let source = """
-        func f() {
-            if true {
-                for _ in [1] {
-                    if true {
-                        for _ in [1] { let _ = 1 }
-                    }
-                }
-            }
-        }
-        """
-        let file = Parser.parse(source: source)
-        let converter = SourceLocationConverter(fileName: "t.swift", tree: file)
-        let ctx = LintContext(filePath: "t.swift", sourceLocationConverter: converter, ruleID: "test", defaultSeverity: .error)
+        let source = "func f() {\n    if true {\n        for _ in [1] {\n            if true {\n                for _ in [1] { let _ = 1 }\n            }\n        }\n    }\n}"
+        let (file, ctx) = makeLintContext(source: source)
         nestingRule().check(file, ctx)
         #expect(ctx.collectDiagnostics().count >= 1)
     }
 }
+
+// swiftlint:enable line_length deep_nesting_control_flow

@@ -1,5 +1,5 @@
-import Testing
 @testable import SwiftASTLint
+import Testing
 
 @Suite("Severity comparison: warning < error ordering for diagnostic prioritization")
 struct SeverityTests {

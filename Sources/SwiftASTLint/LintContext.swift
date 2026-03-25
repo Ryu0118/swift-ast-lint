@@ -13,7 +13,7 @@ public final class LintContext {
         filePath: String,
         sourceLocationConverter: SourceLocationConverter,
         ruleID: String,
-        defaultSeverity: Severity
+        defaultSeverity: Severity,
     ) {
         self.filePath = filePath
         self.sourceLocationConverter = sourceLocationConverter
@@ -33,7 +33,7 @@ public final class LintContext {
             message: message,
             filePath: filePath,
             line: location.line,
-            column: location.column
+            column: location.column,
         )
         diagnostics.append(diagnostic)
     }

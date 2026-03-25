@@ -12,7 +12,7 @@ public struct Rule: Sendable {
         severity: Severity,
         include: [String] = [],
         exclude: [String] = [],
-        check: @escaping @Sendable @LintActor (SourceFileSyntax, LintContext) -> Void
+        check: @escaping @Sendable @LintActor (SourceFileSyntax, LintContext) -> Void,
     ) {
         self.id = id
         self.severity = severity
