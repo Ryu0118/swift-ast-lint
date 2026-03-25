@@ -12,24 +12,6 @@ import Testing
     """,
 )
 struct RuleExampleTests {
-    // MARK: - Helpers
-
-    @LintActor
-    private func makeLintContext(
-        source: String,
-        filePath: String = "test.swift",
-    ) -> (SourceFileSyntax, LintContext) {
-        let parsed = Parser.parse(source: source)
-        let converter = SourceLocationConverter(fileName: filePath, tree: parsed)
-        let context = LintContext(
-            filePath: filePath,
-            sourceLocationConverter: converter,
-            ruleID: "test",
-            defaultSeverity: .error,
-        )
-        return (parsed, context)
-    }
-
     // MARK: - single-large-public-type-per-file
 
     private func largePubTypeRule() -> Rule {

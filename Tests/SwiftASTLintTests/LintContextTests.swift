@@ -10,23 +10,15 @@ import Testing
     """,
 )
 struct LintContextTests {
-    @LintActor
-    private func makeContext(source: String, filePath: String = "/test.swift") -> (SourceFileSyntax, LintContext) {
-        let sourceFile = Parser.parse(source: source)
-        let converter = SourceLocationConverter(fileName: filePath, tree: sourceFile)
-        let context = LintContext(
-            filePath: filePath,
-            sourceLocationConverter: converter,
-            ruleID: "test-rule",
-            defaultSeverity: .warning,
-        )
-        return (sourceFile, context)
-    }
-
     @Test("report with default severity")
     @LintActor
     func reportDefault() throws {
-        let (sourceFile, context) = makeContext(source: "let x = 1\n")
+        let (sourceFile, context) = makeLintContext(
+            source: "let x = 1\n",
+            filePath: "/test.swift",
+            ruleID: "test-rule",
+            defaultSeverity: .warning,
+        )
         let node = try #require(sourceFile.statements.first)
         context.report(on: node, message: "test message")
         let diagnostics = context.collectDiagnostics()
@@ -40,7 +32,11 @@ struct LintContextTests {
     @Test("report with severity override")
     @LintActor
     func reportOverride() throws {
-        let (sourceFile, context) = makeContext(source: "let x = 1\n")
+        let (sourceFile, context) = makeLintContext(
+            source: "let x = 1\n",
+            ruleID: "test-rule",
+            defaultSeverity: .warning,
+        )
         let node = try #require(sourceFile.statements.first)
         context.report(on: node, message: "err", severity: .error)
         let diagnostics = context.collectDiagnostics()
@@ -50,7 +46,11 @@ struct LintContextTests {
     @Test("multiple reports accumulate")
     @LintActor
     func multipleReports() {
-        let (sourceFile, context) = makeContext(source: "let x = 1\nlet y = 2\n")
+        let (sourceFile, context) = makeLintContext(
+            source: "let x = 1\nlet y = 2\n",
+            ruleID: "test-rule",
+            defaultSeverity: .warning,
+        )
         for stmt in sourceFile.statements {
             context.report(on: stmt, message: "found")
         }
@@ -61,7 +61,11 @@ struct LintContextTests {
     @Test("filePath is preserved")
     @LintActor
     func filePath() {
-        let (_, context) = makeContext(source: "let x = 1\n", filePath: "/my/file.swift")
+        let (_, context) = makeLintContext(
+            source: "let x = 1\n",
+            filePath: "/my/file.swift",
+            defaultSeverity: .warning,
+        )
         #expect(context.filePath == "/my/file.swift")
     }
 }

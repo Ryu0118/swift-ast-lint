@@ -6,12 +6,18 @@ public enum Scaffold {
     public static func generate(at path: String, name: String) async throws {
         let fileManager = FileManager.default
 
-        // Create target directory if needed
         if !fileManager.fileExists(atPath: path) {
             try fileManager.createDirectory(atPath: path, withIntermediateDirectories: true)
         }
 
-        // Run swift package init --type empty
+        try await runSwiftPackageInit(at: path, name: name)
+        try createSourceDirectories(at: path)
+        try writeTemplates(at: path, name: name)
+    }
+
+    // MARK: - Steps
+
+    private static func runSwiftPackageInit(at path: String, name: String) async throws {
         let result = try await run(
             .name("swift"),
             arguments: ["package", "init", "--type", "empty", "--name", name],
@@ -24,8 +30,10 @@ public enum Scaffold {
             let errorOutput = result.standardError ?? ""
             throw ScaffoldError.packageInitFailed(errorOutput)
         }
+    }
 
-        // Create additional directories
+    private static func createSourceDirectories(at path: String) throws {
+        let fileManager = FileManager.default
         let dirs = [
             "\(path)/Sources/Rules",
             "\(path)/Sources/swift-ast-lint",
@@ -33,20 +41,22 @@ public enum Scaffold {
         for dir in dirs {
             try fileManager.createDirectory(atPath: dir, withIntermediateDirectories: true)
         }
+    }
 
-        // Overwrite Package.swift with our template
-        try packageSwift(name: name).write(
-            toFile: "\(path)/Package.swift", atomically: true, encoding: .utf8,
-        )
-        try mainSwift.write(
-            toFile: "\(path)/Sources/swift-ast-lint/main.swift", atomically: true, encoding: .utf8,
-        )
-        try rulesSwift.write(
-            toFile: "\(path)/Sources/Rules/Rules.swift", atomically: true, encoding: .utf8,
-        )
-        try ymlTemplate.write(
-            toFile: "\(path)/.swift-ast-lint.yml", atomically: true, encoding: .utf8,
-        )
+    private static func writeTemplates(at path: String, name: String) throws {
+        let files: [(String, String)] = [
+            ("Package.swift", packageSwift(name: name)),
+            ("Sources/swift-ast-lint/main.swift", mainSwift),
+            ("Sources/Rules/Rules.swift", rulesSwift),
+            (".swift-ast-lint.yml", ymlTemplate),
+        ]
+        for (subpath, content) in files {
+            try content.write(
+                toFile: "\(path)/\(subpath)",
+                atomically: true,
+                encoding: .utf8,
+            )
+        }
     }
 
     // MARK: - Templates
@@ -62,7 +72,7 @@ public enum Scaffold {
             dependencies: [
                 // TODO: Update to actual repository URL
                 .package(url: "https://github.com/aspect-build/swift-ast-lint.git", from: "0.1.0"),
-                .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.0"),
+                .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0"),
             ],
             targets: [
                 .target(
