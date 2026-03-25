@@ -1,0 +1,25 @@
+import Testing
+import SwiftSyntax
+@testable import SwiftASTLint
+
+@Suite("Rule")
+struct RuleTests {
+    @Test("default include and exclude are empty")
+    func defaults() {
+        let rule = Rule(id: "test", severity: .warning) { _, _ in }
+        #expect(rule.include.isEmpty)
+        #expect(rule.exclude.isEmpty)
+    }
+
+    @Test("custom include and exclude")
+    func customPatterns() {
+        let rule = Rule(
+            id: "test",
+            severity: .error,
+            include: ["Sources/**"],
+            exclude: ["**/*Generated.swift"]
+        ) { _, _ in }
+        #expect(rule.include == ["Sources/**"])
+        #expect(rule.exclude == ["**/*Generated.swift"])
+    }
+}
