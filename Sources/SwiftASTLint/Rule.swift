@@ -5,14 +5,14 @@ public struct Rule: Sendable {
     public let severity: Severity
     public let include: [String]
     public let exclude: [String]
-    public let check: @Sendable (SourceFileSyntax, LintContext) async -> Void
+    public let check: @Sendable @LintActor (SourceFileSyntax, LintContext) -> Void
 
     public init(
         id: String,
         severity: Severity,
         include: [String] = [],
         exclude: [String] = [],
-        check: @escaping @Sendable (SourceFileSyntax, LintContext) async -> Void
+        check: @escaping @Sendable @LintActor (SourceFileSyntax, LintContext) -> Void
     ) {
         self.id = id
         self.severity = severity

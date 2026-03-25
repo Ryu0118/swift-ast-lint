@@ -28,30 +28,32 @@ struct RuleExampleTests {
             }
             guard large.count > 1 else { return }
             for decl in large {
-                await context.report(on: decl, message: "too many large public types")
+                context.report(on: decl, message: "too many large public types")
             }
         }
     }
 
     @Test("no violation with one large public type")
-    func singleLargeType() async {
+    @LintActor
+    func singleLargeType() {
         let source = "public struct A {\n" + String(repeating: "    var x = 1\n", count: 60) + "}\n"
         let file = Parser.parse(source: source)
         let converter = SourceLocationConverter(fileName: "test.swift", tree: file)
         let ctx = LintContext(filePath: "test.swift", sourceLocationConverter: converter, ruleID: "test", defaultSeverity: .error)
-        await largePubTypeRule().check(file, ctx)
-        #expect(await ctx.collectDiagnostics().isEmpty)
+        largePubTypeRule().check(file, ctx)
+        #expect(ctx.collectDiagnostics().isEmpty)
     }
 
     @Test("violation with two large public types")
-    func twoLargeTypes() async {
+    @LintActor
+    func twoLargeTypes() {
         let typeA = "public struct A {\n" + String(repeating: "    var x = 1\n", count: 60) + "}\n"
         let typeB = "public class B {\n" + String(repeating: "    var y = 2\n", count: 60) + "}\n"
         let file = Parser.parse(source: typeA + typeB)
         let converter = SourceLocationConverter(fileName: "test.swift", tree: file)
         let ctx = LintContext(filePath: "test.swift", sourceLocationConverter: converter, ruleID: "test", defaultSeverity: .error)
-        await largePubTypeRule().check(file, ctx)
-        #expect(await ctx.collectDiagnostics().count == 2)
+        largePubTypeRule().check(file, ctx)
+        #expect(ctx.collectDiagnostics().count == 2)
     }
 
     // MARK: - max-nesting-depth
@@ -81,13 +83,14 @@ struct RuleExampleTests {
             let visitor = NestingVisitor()
             visitor.walk(file)
             for (node, depth) in visitor.violations {
-                await context.report(on: node, message: "nesting too deep: \(depth)")
+                context.report(on: node, message: "nesting too deep: \(depth)")
             }
         }
     }
 
     @Test("no violation at depth 3")
-    func nestingOk() async {
+    @LintActor
+    func nestingOk() {
         let source = """
         func f() {
             if true {
@@ -100,12 +103,13 @@ struct RuleExampleTests {
         let file = Parser.parse(source: source)
         let converter = SourceLocationConverter(fileName: "t.swift", tree: file)
         let ctx = LintContext(filePath: "t.swift", sourceLocationConverter: converter, ruleID: "test", defaultSeverity: .error)
-        await nestingRule().check(file, ctx)
-        #expect(await ctx.collectDiagnostics().isEmpty)
+        nestingRule().check(file, ctx)
+        #expect(ctx.collectDiagnostics().isEmpty)
     }
 
     @Test("violation at depth 4")
-    func nestingViolation() async {
+    @LintActor
+    func nestingViolation() {
         let source = """
         func f() {
             if true {
@@ -120,7 +124,7 @@ struct RuleExampleTests {
         let file = Parser.parse(source: source)
         let converter = SourceLocationConverter(fileName: "t.swift", tree: file)
         let ctx = LintContext(filePath: "t.swift", sourceLocationConverter: converter, ruleID: "test", defaultSeverity: .error)
-        await nestingRule().check(file, ctx)
-        #expect(await ctx.collectDiagnostics().count >= 1)
+        nestingRule().check(file, ctx)
+        #expect(ctx.collectDiagnostics().count >= 1)
     }
 }

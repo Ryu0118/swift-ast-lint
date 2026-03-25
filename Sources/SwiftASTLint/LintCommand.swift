@@ -91,11 +91,12 @@ public struct LintCommand: ParsableCommand {
         return try result!.get()
     }
 
+    @LintActor
     static func lintFiles(
         rules: RuleSet,
         config: Configuration?,
         rootPath: String
-    ) async throws -> LintResult {
+    ) throws -> LintResult {
         let allSwiftFiles = try collectSwiftFiles(rootPath: rootPath)
         let ymlFiltered = filterByConfig(files: allSwiftFiles, config: config, rootPath: rootPath)
         let ruleSetFiltered = filterByPatterns(
@@ -135,8 +136,8 @@ public struct LintCommand: ParsableCommand {
                     ruleID: rule.id,
                     defaultSeverity: rule.severity
                 )
-                await rule.check(sourceFile, context)
-                allDiagnostics.append(contentsOf: await context.collectDiagnostics())
+                rule.check(sourceFile, context)
+                allDiagnostics.append(contentsOf: context.collectDiagnostics())
             }
         }
 

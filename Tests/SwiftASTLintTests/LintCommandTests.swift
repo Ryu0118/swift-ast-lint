@@ -20,7 +20,7 @@ struct LintCommandTests {
 
         let rules = RuleSet {
             Rule(id: "always-warn", severity: .warning) { file, ctx in
-                await ctx.report(on: file, message: "found code")
+                ctx.report(on: file, message: "found code")
             }
         }
         let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir)
@@ -37,7 +37,7 @@ struct LintCommandTests {
 
         let rules = RuleSet {
             Rule(id: "always-err", severity: .error) { file, ctx in
-                await ctx.report(on: file, message: "bad")
+                ctx.report(on: file, message: "bad")
             }
         }
         let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir)
@@ -56,7 +56,7 @@ struct LintCommandTests {
         let config = Configuration(excludedPaths: ["Generated/**"])
         let rules = RuleSet {
             Rule(id: "count", severity: .warning) { file, ctx in
-                await ctx.report(on: file, message: "found")
+                ctx.report(on: file, message: "found")
             }
         }
         let result = try await LintCommand.lintFiles(rules: rules, config: config, rootPath: dir)
@@ -75,7 +75,7 @@ struct LintCommandTests {
 
         let rules = RuleSet {
             Rule(id: "sources-only", severity: .warning, include: ["Sources/**"]) { file, ctx in
-                await ctx.report(on: file, message: "found")
+                ctx.report(on: file, message: "found")
             }
         }
         let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir)
@@ -92,7 +92,7 @@ struct LintCommandTests {
         let rules = RuleSet {
             Rule(id: "all", severity: .warning) { file, ctx in
                 for stmt in file.statements {
-                    await ctx.report(on: stmt, message: "found")
+                    ctx.report(on: stmt, message: "found")
                 }
             }
         }
@@ -108,7 +108,7 @@ struct LintCommandTests {
 
         let rules = RuleSet {
             Rule(id: "x", severity: .warning) { _, ctx in
-                await ctx.report(on: Parser.parse(source: ""), message: "never")
+                ctx.report(on: Parser.parse(source: ""), message: "never")
             }
         }
         let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir)
@@ -126,7 +126,7 @@ struct LintCommandTests {
 
         let rules = RuleSet {
             Rule(id: "all", severity: .warning) { file, ctx in
-                await ctx.report(on: file, message: "found")
+                ctx.report(on: file, message: "found")
             }
         }.include(["Sources/**"])
         let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir)
@@ -143,7 +143,7 @@ struct LintCommandTests {
 
         let rules = RuleSet {
             Rule(id: "all", severity: .warning) { file, ctx in
-                await ctx.report(on: file, message: "found")
+                ctx.report(on: file, message: "found")
             }
         }.exclude(["**/*Generated.swift"])
         let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir)
@@ -162,7 +162,7 @@ struct LintCommandTests {
 
         let rules = RuleSet {
             Rule(id: "r", severity: severity) { file, ctx in
-                await ctx.report(on: file, message: "msg")
+                ctx.report(on: file, message: "msg")
             }
         }
         let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir)

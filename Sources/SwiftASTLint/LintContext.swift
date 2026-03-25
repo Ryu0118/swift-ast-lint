@@ -1,8 +1,13 @@
 import SwiftSyntax
 
-public actor LintContext {
+@LintActor
+public final class LintContext {
     public nonisolated let filePath: String
     public nonisolated let sourceLocationConverter: SourceLocationConverter
+
+    private let ruleID: String
+    private let defaultSeverity: Severity
+    private var diagnostics: [Diagnostic] = []
 
     init(
         filePath: String,
@@ -15,10 +20,6 @@ public actor LintContext {
         self.ruleID = ruleID
         self.defaultSeverity = defaultSeverity
     }
-
-    private let ruleID: String
-    private let defaultSeverity: Severity
-    private var diagnostics: [Diagnostic] = []
 
     public func report(on node: some SyntaxProtocol, message: String) {
         report(on: node, message: message, severity: defaultSeverity)
