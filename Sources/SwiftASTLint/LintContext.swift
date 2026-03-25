@@ -1,7 +1,7 @@
 import SwiftSyntax
 
 public actor LintContext {
-    public let filePath: String
+    public nonisolated let filePath: String
     public nonisolated let sourceLocationConverter: SourceLocationConverter
 
     init(
