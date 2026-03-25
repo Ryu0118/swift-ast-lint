@@ -1,7 +1,7 @@
 import Testing
 @testable import SwiftASTLint
 
-@Suite("Diagnostic")
+@Suite("Diagnostic formatted output: path:line:col: severity: [id] message for Xcode and AI agent compatibility")
 struct DiagnosticTests {
     @Test("formatted output", arguments: [
         (Diagnostic(ruleID: "test-rule", severity: .warning, message: "msg", filePath: "/a/b.swift", line: 42, column: 5),

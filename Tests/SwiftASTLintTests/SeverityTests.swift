@@ -1,7 +1,7 @@
 import Testing
 @testable import SwiftASTLint
 
-@Suite("Severity")
+@Suite("Severity comparison: warning < error ordering for diagnostic prioritization")
 struct SeverityTests {
     @Test("warning is less than error", arguments: [
         (Severity.warning, Severity.error, true),

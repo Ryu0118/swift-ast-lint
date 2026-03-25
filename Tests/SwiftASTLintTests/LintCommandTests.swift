@@ -5,7 +5,7 @@ import Foundation
 import FileManagerProtocol
 @testable import SwiftASTLint
 
-@Suite("LintCommand")
+@Suite("LintCommand end-to-end: file traversal, intersection filtering (yml > RuleSet > Rule), sort order, and exit code mapping")
 struct LintCommandTests {
     @Test("lint single file with one rule producing warning")
     func singleWarning() async throws {

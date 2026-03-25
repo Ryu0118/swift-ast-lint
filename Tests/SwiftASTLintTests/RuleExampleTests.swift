@@ -3,7 +3,7 @@ import SwiftSyntax
 import SwiftParser
 @testable import SwiftASTLint
 
-@Suite("Rule Examples")
+@Suite("Rule examples from spec: large-public-type-per-file and max-nesting-depth validated against inline Swift sources")
 struct RuleExampleTests {
 
     // MARK: - single-large-public-type-per-file

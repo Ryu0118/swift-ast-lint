@@ -2,7 +2,7 @@ import ArgumentParser
 import SwiftASTLintScaffold
 import Foundation
 
-struct InitCommand: ParsableCommand {
+struct InitCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "init",
         abstract: "Generate a new linter package"
@@ -14,13 +14,13 @@ struct InitCommand: ParsableCommand {
     @Option(name: .long, help: "Package name (defaults to directory name)")
     var name: String?
 
-    func run() throws {
+    func run() async throws {
         let targetPath: String
 
         if let path {
             targetPath = path
         } else {
-            print("Enter the path for the linter package (default: ./MyLinter):", terminator: " ")
+            Swift.print("Enter the path for the linter package (default: ./MyLinter):", terminator: " ")
             if let input = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !input.isEmpty {
                 targetPath = input
             } else {
@@ -31,7 +31,7 @@ struct InitCommand: ParsableCommand {
         let resolvedPath = (targetPath as NSString).standardizingPath
         let packageName = name ?? (resolvedPath as NSString).lastPathComponent
 
-        try Scaffold.generate(at: resolvedPath, name: packageName)
-        print("Generated linter package '\(packageName)' at \(resolvedPath)")
+        try await Scaffold.generate(at: resolvedPath, name: packageName)
+        Swift.print("Generated linter package '\(packageName)' at \(resolvedPath)")
     }
 }

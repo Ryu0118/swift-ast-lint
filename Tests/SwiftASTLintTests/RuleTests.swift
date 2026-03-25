@@ -2,7 +2,7 @@ import Testing
 import SwiftSyntax
 @testable import SwiftASTLint
 
-@Suite("Rule")
+@Suite("Rule construction: id, severity, include/exclude glob patterns with sensible defaults")
 struct RuleTests {
     @Test("default include and exclude are empty")
     func defaults() {

@@ -2,6 +2,7 @@ import Foundation
 import SwiftSyntax
 import SwiftParser
 import ArgumentParser
+import AsyncOperations
 
 public struct LintResult: Sendable {
     public let diagnostics: [Diagnostic]
@@ -69,7 +70,7 @@ public struct LintCommand: ParsableCommand {
             return $0.line < $1.line
         }
         for diagnostic in allDiagnostics {
-            print(diagnostic.formatted)
+            Swift.print(diagnostic.formatted)
         }
 
         let hasErrors = allDiagnostics.contains { $0.severity == .error }
@@ -96,7 +97,7 @@ public struct LintCommand: ParsableCommand {
         rules: RuleSet,
         config: Configuration?,
         rootPath: String
-    ) throws -> LintResult {
+    ) async throws -> LintResult {
         let allSwiftFiles = try collectSwiftFiles(rootPath: rootPath)
         let ymlFiltered = filterByConfig(files: allSwiftFiles, config: config, rootPath: rootPath)
         let ruleSetFiltered = filterByPatterns(
@@ -106,47 +107,59 @@ public struct LintCommand: ParsableCommand {
             rootPath: rootPath
         )
 
-        var allDiagnostics: [Diagnostic] = []
-
-        for filePath in ruleSetFiltered {
-            let source: String
-            do {
-                source = try String(contentsOfFile: filePath, encoding: .utf8)
-            } catch {
-                fputs("warning: Could not read \(filePath): \(error)\n", stderr)
-                continue
-            }
-
-            let sourceFile = Parser.parse(source: source)
-            let converter = SourceLocationConverter(fileName: filePath, tree: sourceFile)
-
-            for rule in rules.rules {
-                let relativePath = makeRelative(filePath, to: rootPath)
-
-                if !rule.include.isEmpty {
-                    guard GlobPattern.matchesAny(patterns: rule.include, path: relativePath) else { continue }
-                }
-                if GlobPattern.matchesAny(patterns: rule.exclude, path: relativePath) {
-                    continue
-                }
-
-                let context = LintContext(
-                    filePath: filePath,
-                    sourceLocationConverter: converter,
-                    ruleID: rule.id,
-                    defaultSeverity: rule.severity
-                )
-                rule.check(sourceFile, context)
-                allDiagnostics.append(contentsOf: context.collectDiagnostics())
-            }
+        // Process files concurrently (up to 10 at a time)
+        let fileDiagnostics = try await ruleSetFiltered.asyncMap(numberOfConcurrentTasks: 10) { filePath -> [Diagnostic] in
+            await Self.lintSingleFile(filePath: filePath, rules: rules, rootPath: rootPath)
         }
 
+        var allDiagnostics = fileDiagnostics.flatMap { $0 }
         allDiagnostics.sort {
             if $0.filePath != $1.filePath { return $0.filePath < $1.filePath }
             return $0.line < $1.line
         }
 
         return LintResult(diagnostics: allDiagnostics)
+    }
+
+    @LintActor
+    private static func lintSingleFile(
+        filePath: String,
+        rules: RuleSet,
+        rootPath: String
+    ) -> [Diagnostic] {
+        let source: String
+        do {
+            source = try String(contentsOfFile: filePath, encoding: .utf8)
+        } catch {
+            fputs("warning: Could not read \(filePath): \(error)\n", stderr)
+            return []
+        }
+
+        let sourceFile = Parser.parse(source: source)
+        let converter = SourceLocationConverter(fileName: filePath, tree: sourceFile)
+        var diagnostics: [Diagnostic] = []
+
+        for rule in rules.rules {
+            let relativePath = makeRelative(filePath, to: rootPath)
+
+            if !rule.include.isEmpty {
+                guard GlobPattern.matchesAny(patterns: rule.include, path: relativePath) else { continue }
+            }
+            if GlobPattern.matchesAny(patterns: rule.exclude, path: relativePath) {
+                continue
+            }
+
+            let context = LintContext(
+                filePath: filePath,
+                sourceLocationConverter: converter,
+                ruleID: rule.id,
+                defaultSeverity: rule.severity
+            )
+            rule.check(sourceFile, context)
+            diagnostics.append(contentsOf: context.collectDiagnostics())
+        }
+
+        return diagnostics
     }
 
     // MARK: - Private

@@ -1,7 +1,7 @@
 import Testing
 @testable import SwiftASTLint
 
-@Suite("GlobPattern")
+@Suite("GlobPattern matching: *, **, ? wildcards and multi-pattern union for include/exclude filtering")
 struct GlobPatternTests {
     @Test("basic star matching", arguments: [
         ("*.swift", "File.swift", true),

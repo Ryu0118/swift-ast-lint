@@ -3,7 +3,7 @@ import SwiftSyntax
 import SwiftParser
 @testable import SwiftASTLint
 
-@Suite("LintContext")
+@Suite("LintContext diagnostic collection: report accumulation, severity override, and file path tracking via @LintActor")
 struct LintContextTests {
     @LintActor
     private func makeContext(source: String, filePath: String = "/test.swift") -> (SourceFileSyntax, LintContext) {

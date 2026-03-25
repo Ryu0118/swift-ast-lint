@@ -3,7 +3,7 @@ import Foundation
 import FileManagerProtocol
 @testable import SwiftASTLint
 
-@Suite("ConfigurationLoader")
+@Suite("ConfigurationLoader YAML parsing: valid configs, empty files, malformed input, and non-dictionary rejection")
 struct ConfigurationLoaderTests {
     @Test("load valid yml")
     func validYml() async throws {

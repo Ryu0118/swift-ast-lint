@@ -1,36 +1,28 @@
 import Foundation
+import Subprocess
+import System
 
 public struct Scaffold {
-    public static func generate(at path: String, name: String) throws {
+    public static func generate(at path: String, name: String) async throws {
         let fm = FileManager.default
 
-        // Create parent directories if needed
-        let parentDir = (path as NSString).deletingLastPathComponent
-        if !parentDir.isEmpty {
-            try fm.createDirectory(atPath: parentDir, withIntermediateDirectories: true)
-        }
-
-        // Run swift package init --type empty
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/swift")
-        process.arguments = ["package", "init", "--type", "empty", "--name", name]
-        process.currentDirectoryURL = URL(fileURLWithPath: parentDir.isEmpty ? "." : parentDir)
-
-        // If the target directory doesn't exist yet, create it first
+        // Create target directory if needed
         if !fm.fileExists(atPath: path) {
             try fm.createDirectory(atPath: path, withIntermediateDirectories: true)
         }
-        process.currentDirectoryURL = URL(fileURLWithPath: path)
 
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-        try process.run()
-        process.waitUntilExit()
+        // Run swift package init --type empty
+        let result = try await run(
+            .name("swift"),
+            arguments: ["package", "init", "--type", "empty", "--name", name],
+            workingDirectory: FilePath(path),
+            output: .string(limit: 1024 * 1024),
+            error: .string(limit: 1024 * 1024)
+        )
 
-        guard process.terminationStatus == 0 else {
-            let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            throw ScaffoldError.packageInitFailed(output)
+        guard result.terminationStatus.isSuccess else {
+            let errorOutput = result.standardError ?? ""
+            throw ScaffoldError.packageInitFailed(errorOutput)
         }
 
         // Create additional directories
@@ -122,7 +114,7 @@ public enum ScaffoldError: Error, CustomStringConvertible {
     public var description: String {
         switch self {
         case .packageInitFailed(let output):
-            return "swift package init failed: \(output)"
+            "swift package init failed: \(output)"
         }
     }
 }

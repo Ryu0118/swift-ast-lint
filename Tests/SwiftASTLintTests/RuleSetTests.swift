@@ -2,7 +2,7 @@ import Testing
 import SwiftSyntax
 @testable import SwiftASTLint
 
-@Suite("RuleSet")
+@Suite("RuleSet result builder DSL and include/exclude chaining with value semantics")
 struct RuleSetTests {
     @Test("builder creates rule set with rules")
     func builder() {
