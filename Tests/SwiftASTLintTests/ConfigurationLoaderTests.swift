@@ -61,4 +61,28 @@ struct ConfigurationLoaderTests {
             }
         }
     }
+
+    @Test("included_paths only, excluded_paths absent")
+    func includeOnly() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let yml = "included_paths:\n  - \"Sources/**\"\n"
+            let path = dir.appendingPathComponent("inc.yml")
+            try yml.write(to: path, atomically: true, encoding: .utf8)
+            let config = try ConfigurationLoader.load(from: path.path)
+            #expect(config.includedPaths == ["Sources/**"])
+            #expect(config.excludedPaths.isEmpty)
+        }
+    }
+
+    @Test("excluded_paths only, included_paths absent")
+    func excludeOnly() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let yml = "excluded_paths:\n  - \".build/**\"\n"
+            let path = dir.appendingPathComponent("exc.yml")
+            try yml.write(to: path, atomically: true, encoding: .utf8)
+            let config = try ConfigurationLoader.load(from: path.path)
+            #expect(config.includedPaths.isEmpty)
+            #expect(config.excludedPaths == [".build/**"])
+        }
+    }
 }

@@ -190,6 +190,41 @@ struct LintCommandTests {
             #expect(result.hasErrors == expectedHasErrors)
         }
     }
+
+    @Test("three-layer intersection: yml include + RuleSet exclude + Rule include")
+    func threeLayerIntersection() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Sources/Core"), withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Sources/Generated"), withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Tests"), withIntermediateDirectories: true)
+
+            try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/Core/a.swift"), atomically: true, encoding: .utf8)
+            try "let b = 2\n".write(to: dir.appendingPathComponent("Sources/Generated/b.swift"), atomically: true, encoding: .utf8)
+            try "let c = 3\n".write(to: dir.appendingPathComponent("Tests/c.swift"), atomically: true, encoding: .utf8)
+
+            // yml: only Sources/**
+            let config = Configuration(
+                includedPaths: ["Sources/**/*.swift"],
+            )
+            // RuleSet: exclude Generated
+            // Rule: include only Core
+            let rules = RuleSet {
+                Rule(
+                    id: "core-only",
+                    severity: .warning,
+                    include: ["Sources/Core/**"],
+                ) { file, ctx in
+                    ctx.report(on: file, message: "found")
+                }
+            }.exclude(["Sources/Generated/**"])
+
+            let result = try await LintCommand.lintFiles(rules: rules, config: config, rootPath: dir.path)
+            // Only Sources/Core/a.swift should survive all 3 layers
+            #expect(result.diagnostics.count == 1)
+            #expect(result.diagnostics[0].filePath.contains("Core/a.swift"))
+        }
+    }
 }
 
 // swiftlint:enable line_length force_unwrapping deep_nesting_control_flow

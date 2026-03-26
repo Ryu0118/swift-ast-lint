@@ -1,7 +1,12 @@
 @testable import SwiftASTLint
 import Testing
 
-@Suite("GlobPattern matching: *, **, ? wildcards and multi-pattern union for include/exclude filtering")
+@Suite(
+    """
+    GlobPattern matching: *, **, ? wildcards, edge cases, \
+    and multi-pattern union for include/exclude filtering
+    """,
+)
 struct GlobPatternTests {
     @Test("basic star matching", arguments: [
         ("*.swift", "File.swift", true),
@@ -24,6 +29,14 @@ struct GlobPatternTests {
         #expect(GlobPattern.matches(pattern: pattern, path: path) == expected)
     }
 
+    @Test("double star alone matches everything", arguments: [
+        ("**", "a.swift", true),
+        ("**", "a/b/c.swift", true),
+    ])
+    func doubleStarAlone(pattern: String, path: String, expected: Bool) {
+        #expect(GlobPattern.matches(pattern: pattern, path: path) == expected)
+    }
+
     @Test("question mark matching", arguments: [
         ("?.swift", "A.swift", true),
         ("?.swift", "AB.swift", false),
@@ -37,6 +50,15 @@ struct GlobPatternTests {
         ("Sources/File.swift", "Sources/Other.swift", false),
     ])
     func exactMatch(pattern: String, path: String, expected: Bool) {
+        #expect(GlobPattern.matches(pattern: pattern, path: path) == expected)
+    }
+
+    @Test("paths with dots in directory names", arguments: [
+        ("**/*.swift", "a.b/c.swift", true),
+        ("a.b/*.swift", "a.b/c.swift", true),
+        ("a.b/*.swift", "ab/c.swift", false),
+    ])
+    func dotsInPath(pattern: String, path: String, expected: Bool) {
         #expect(GlobPattern.matches(pattern: pattern, path: path) == expected)
     }
 

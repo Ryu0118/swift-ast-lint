@@ -26,8 +26,12 @@ public struct RuleSet: Sendable {
 
 @resultBuilder
 public struct RuleSetBuilder {
-    public static func buildBlock(_ rules: Rule...) -> [Rule] {
-        Array(rules)
+    public static func buildExpression(_ rule: Rule) -> [Rule] {
+        [rule]
+    }
+
+    public static func buildBlock(_ components: [Rule]...) -> [Rule] {
+        components.flatMap(\.self)
     }
 
     public static func buildOptional(_ component: [Rule]?) -> [Rule] {

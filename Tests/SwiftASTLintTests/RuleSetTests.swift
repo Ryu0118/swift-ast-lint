@@ -58,4 +58,52 @@ struct RuleSetTests {
         let ruleSet = RuleSet {}
         #expect(ruleSet.rules.isEmpty)
     }
+
+    @Test("buildOptional includes rules when condition is true")
+    func buildOptionalTrue() {
+        let includeRule = true
+        let ruleSet = RuleSet {
+            if includeRule {
+                Rule(id: "conditional", severity: .warning) { _, _ in }
+            }
+        }
+        #expect(ruleSet.rules.count == 1)
+    }
+
+    @Test("buildOptional excludes rules when condition is false")
+    func buildOptionalFalse() {
+        let includeRule = false
+        let ruleSet = RuleSet {
+            if includeRule {
+                Rule(id: "conditional", severity: .warning) { _, _ in }
+            }
+        }
+        #expect(ruleSet.rules.isEmpty)
+    }
+
+    @Test("buildEither selects correct branch")
+    func buildEither() {
+        let useFirst = true
+        let ruleSet = RuleSet {
+            if useFirst {
+                Rule(id: "first", severity: .warning) { _, _ in }
+            } else {
+                Rule(id: "second", severity: .error) { _, _ in }
+            }
+        }
+        #expect(ruleSet.rules.count == 1)
+        #expect(ruleSet.rules[0].id == "first")
+    }
+
+    @Test("buildArray from for-in loop")
+    func buildArray() {
+        let ids = ["rule-1", "rule-2", "rule-3"]
+        let ruleSet = RuleSet {
+            for ruleID in ids {
+                Rule(id: ruleID, severity: .warning) { _, _ in }
+            }
+        }
+        #expect(ruleSet.rules.count == 3)
+        #expect(ruleSet.rules.map(\.id) == ids)
+    }
 }
