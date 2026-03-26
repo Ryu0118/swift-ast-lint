@@ -59,32 +59,43 @@ import SwiftASTLint
 import SwiftSyntax
 
 public let rules = RuleSet {
-    Rule(id: "max-nesting-depth", severity: .error) { file, context in
-        // Use SwiftSyntax APIs directly
-        final class NestingVisitor: SyntaxVisitor {
-            var violations: [(Syntax, Int)] = []
-            var depth = 0
-            let maxDepth = 3
-            init() { super.init(viewMode: .sourceAccurate) }
-            private func enter(_ node: some SyntaxProtocol) -> SyntaxVisitorContinueKind {
-                depth += 1
-                if depth > maxDepth { violations.append((Syntax(node), depth)) }
-                return .visitChildren
+    Rule(id: "no-force-try", severity: .error) { file, context in
+        for token in file.tokens(viewMode: .sourceAccurate) {
+            if token.tokenKind == .keyword(.try),
+               token.nextToken(viewMode: .sourceAccurate)?.tokenKind == .exclamationMark
+            {
+                context.report(on: token, message: "Force try (try!) is not allowed")
             }
-            private func leave() { depth -= 1 }
-            override func visit(_ node: IfExprSyntax) -> SyntaxVisitorContinueKind { enter(node) }
-            override func visitPost(_ node: IfExprSyntax) { leave() }
-            override func visit(_ node: ForStmtSyntax) -> SyntaxVisitorContinueKind { enter(node) }
-            override func visitPost(_ node: ForStmtSyntax) { leave() }
         }
-        let visitor = NestingVisitor()
-        visitor.walk(file)
-        for (node, depth) in visitor.violations {
-            context.report(on: node, message: "Nesting depth \(depth) exceeds limit of 3")
+    }
+
+    Rule(
+        id: "single-large-public-type-per-file",
+        severity: .error,
+        exclude: ["**/*Generated.swift"]
+    ) { file, context in
+        let types = file.statements.compactMap { stmt -> (any DeclGroupSyntax)? in
+            if let cls = stmt.item.as(ClassDeclSyntax.self) { return cls }
+            if let str = stmt.item.as(StructDeclSyntax.self) { return str }
+            if let enm = stmt.item.as(EnumDeclSyntax.self) { return enm }
+            return nil
+        }
+        let largePublicTypes = types.filter { decl in
+            let isPublic = decl.modifiers.contains {
+                $0.name.tokenKind == .keyword(.public) || $0.name.tokenKind == .keyword(.package)
+            }
+            guard isPublic else { return false }
+            let converter = context.sourceLocationConverter
+            let start = converter.location(for: decl.memberBlock.leftBrace.positionAfterSkippingLeadingTrivia).line
+            let end = converter.location(for: decl.memberBlock.rightBrace.positionAfterSkippingLeadingTrivia).line
+            return (end - start - 1) >= 50
+        }
+        guard largePublicTypes.count > 1 else { return }
+        for decl in largePublicTypes {
+            context.report(on: decl, message: "Split this file: too many large public types")
         }
     }
 }
-.exclude(["**/*Generated.swift"])
 ```
 
 Run:
@@ -96,7 +107,7 @@ swift run swift-ast-lint ../my-project/Sources
 Output (SwiftLint/Xcode compatible):
 
 ```
-/path/to/File.swift:42:5: error: [max-nesting-depth] Nesting depth 4 exceeds limit of 3
+/path/to/File.swift:42:5: error: [no-force-try] Force try (try!) is not allowed
 ```
 
 ## CLI Usage
