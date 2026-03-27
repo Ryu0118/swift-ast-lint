@@ -96,17 +96,22 @@ package struct LintEngine {
         let sourceFile = Parser.parse(source: source)
         let converter = SourceLocationConverter(fileName: filePath, tree: sourceFile)
         let relativePath = FileCollector.makeRelative(filePath, to: filterBase)
-        let applicable = rules.rules.filter { FileCollector.ruleApplies($0, to: relativePath) }
+        let applicable = rules.rules.filter { rule in
+            let ruleConfig = config?.rules[rule.id]
+            let ruleInclude = ruleConfig?.include ?? []
+            let ruleExclude = ruleConfig?.exclude ?? []
+            return FileCollector.ruleApplies(include: ruleInclude, exclude: ruleExclude, to: relativePath)
+        }
 
         var diagnostics: [Diagnostic] = []
         for rule in applicable {
+            let configRule = config?.rules[rule.id]
             let context = LintContext(
                 filePath: filePath,
                 sourceLocationConverter: converter,
                 ruleID: rule.id,
-                defaultSeverity: rule.severity,
             )
-            rule.check(sourceFile, context)
+            rule.execute(file: sourceFile, context: context, argsYAML: configRule?.argsYAML)
             diagnostics.append(contentsOf: context.collectDiagnostics())
         }
         return diagnostics

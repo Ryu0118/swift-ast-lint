@@ -22,40 +22,63 @@ public struct ConfigurationLoader {
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return Configuration(rootDirectory: rootDir)
         }
-        guard let yaml = try Yams.load(yaml: content) as? [String: Any] else {
-            return Configuration(rootDirectory: rootDir)
-        }
 
-        let includedPaths = (yaml["included_paths"] as? [String]) ?? []
-        let excludedPaths = (yaml["excluded_paths"] as? [String]) ?? []
-        let ruleConfigs = try parseRules(from: yaml)
+        // Decode include/exclude/rules (include/exclude per rule) via Decodable
+        let decoded = try YAMLDecoder().decode(DecodableConfig.self, from: content)
+
+        // Extract args as raw YAML strings via low-level Yams API
+        let rawYAML = try Yams.load(yaml: content) as? [String: Any]
+        let rawRules = rawYAML?["rules"] as? [String: Any]
+        let ruleConfigs = try buildRuleConfigs(decoded: decoded.rules, rawRules: rawRules)
 
         return Configuration(
-            includedPaths: includedPaths,
-            excludedPaths: excludedPaths,
+            includedPaths: decoded.includedPaths,
+            excludedPaths: decoded.excludedPaths,
             rootDirectory: rootDir,
             rules: ruleConfigs,
         )
     }
 
-    private func parseRules(from yaml: [String: Any]) throws -> [String: RuleConfiguration] {
-        guard let rulesDict = yaml["rules"] as? [String: Any] else { return [:] }
+    private func buildRuleConfigs(
+        decoded: [String: RuleConfiguration],
+        rawRules: [String: Any]?,
+    ) throws -> [String: RuleConfiguration] {
         var result: [String: RuleConfiguration] = [:]
-        for (ruleID, value) in rulesDict {
-            guard let ruleDict = value as? [String: Any] else { continue }
-            result[ruleID] = try parseRuleConfig(from: ruleDict)
+        for (ruleID, ruleConfig) in decoded {
+            let argsYAML = try extractArgsYAML(ruleID: ruleID, rawRules: rawRules)
+            result[ruleID] = RuleConfiguration(
+                include: ruleConfig.include,
+                exclude: ruleConfig.exclude,
+                argsYAML: argsYAML,
+            )
         }
         return result
     }
 
-    private func parseRuleConfig(from dict: [String: Any]) throws -> RuleConfiguration {
-        let include = (dict["include"] as? [String]) ?? []
-        let exclude = (dict["exclude"] as? [String]) ?? []
-        let argsYAML: String? = if let args = dict["args"] {
-            try Yams.dump(object: args)
-        } else {
-            nil
-        }
-        return RuleConfiguration(include: include, exclude: exclude, argsYAML: argsYAML)
+    private func extractArgsYAML(ruleID: String, rawRules: [String: Any]?) throws -> String? {
+        guard let ruleDict = rawRules?[ruleID] as? [String: Any],
+              let args = ruleDict["args"]
+        else { return nil }
+        return try Yams.dump(object: args)
+    }
+}
+
+/// Internal Decodable wrapper for YAML parsing.
+private struct DecodableConfig: Decodable {
+    let includedPaths: [String]
+    let excludedPaths: [String]
+    let rules: [String: RuleConfiguration]
+
+    private enum CodingKeys: String, CodingKey {
+        case includedPaths = "included_paths"
+        case excludedPaths = "excluded_paths"
+        case rules
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        includedPaths = try container.decodeIfPresent([String].self, forKey: .includedPaths) ?? []
+        excludedPaths = try container.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
+        rules = try container.decodeIfPresent([String: RuleConfiguration].self, forKey: .rules) ?? [:]
     }
 }

@@ -24,7 +24,7 @@ public struct Configuration: Sendable, Equatable {
 }
 
 /// Per-rule configuration from YAML.
-public struct RuleConfiguration: Sendable, Equatable {
+public struct RuleConfiguration: Sendable, Equatable, Decodable {
     /// Glob patterns to restrict which files this rule applies to.
     public let include: [String]
     /// Glob patterns to exclude files from this rule.
@@ -37,5 +37,18 @@ public struct RuleConfiguration: Sendable, Equatable {
         self.include = include
         self.exclude = exclude
         self.argsYAML = argsYAML
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case include
+        case exclude
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        include = try container.decodeIfPresent([String].self, forKey: .include) ?? []
+        exclude = try container.decodeIfPresent([String].self, forKey: .exclude) ?? []
+        // args is not decoded here — ConfigurationLoader extracts it as raw YAML
+        argsYAML = nil
     }
 }
