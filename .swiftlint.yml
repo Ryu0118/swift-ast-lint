@@ -5,7 +5,6 @@ excluded:
   - .swiftpm
   - "**/.build/**"
   - "**/.swiftpm/**"
-  - Sources/SwiftASTLint/TestForceViolation.swift
 
 included:
   - Sources
