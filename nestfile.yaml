@@ -13,3 +13,7 @@ targets:
     version: 0.2.1
     assetName: gitnagg-0.2.1.artifactbundle.zip
     checksum: f43282a2cffffbd396f384843a5b1b80e62beb1752c46ea4bf8802cf28a95d71
+  - reference: peripheryapp/periphery
+    version: 3.6.0
+    assetName: periphery-3.6.0.artifactbundle.zip
+    checksum: 3cc367216d365246953bce938395dffec5d061ad76fab71b2fdaf5f4c4c61ff0

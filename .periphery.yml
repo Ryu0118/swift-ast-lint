@@ -1,0 +1,3 @@
+retain_public: true
+report_exclude:
+  - Sources/SwiftASTLint/TestForceViolation.swift
