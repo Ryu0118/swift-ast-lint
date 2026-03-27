@@ -19,5 +19,14 @@ let package = Package(
             name: "swift-ast-lint",
             dependencies: ["Rules"],
         ),
+        .testTarget(
+            name: "RulesTests",
+            dependencies: [
+                "Rules",
+                .product(name: "SwiftASTLint", package: "swift-ast-lint"),
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftParser", package: "swift-syntax"),
+            ],
+        ),
     ],
 )
