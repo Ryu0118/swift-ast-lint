@@ -25,6 +25,7 @@ enum Constants {
 
     // MARK: - Config
 
+    /// Must match SwiftASTLintConstants.defaultConfigFileName in SwiftASTLint module
     static let configFileName = ".swift-ast-lint.yml"
 
     // MARK: - Templates

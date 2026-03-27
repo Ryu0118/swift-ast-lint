@@ -23,36 +23,28 @@ package struct LintEngine {
     }
 
     package func lint(paths: [String]) async -> LintResult {
+        let roots = resolveRoots(cliPaths: paths)
         var allDiagnostics: [Diagnostic] = []
-
-        if let config, !config.includedPaths.isEmpty {
-            // SwiftLint behavior: included_paths overrides CLI paths.
-            // Scan from config's rootDirectory, filter relative to it.
-            let result = await lintFiles(
-                scanRoot: config.rootDirectory,
-                filterBase: config.rootDirectory,
-            )
+        for (scanRoot, filterBase) in roots {
+            let result = await lintFiles(scanRoot: scanRoot, filterBase: filterBase)
             allDiagnostics.append(contentsOf: result.diagnostics)
-        } else if let config {
-            // Config exists but includedPaths empty: use CLI paths, filter relative to config dir.
-            for path in paths {
-                let resolved = URL(filePath: path).standardized.path(percentEncoded: false)
-                let result = await lintFiles(scanRoot: resolved, filterBase: config.rootDirectory)
-                allDiagnostics.append(contentsOf: result.diagnostics)
-            }
-        } else {
-            // No config: use CLI paths, filter relative to each scan root (backward compat).
-            for path in paths {
-                let resolved = URL(filePath: path).standardized.path(percentEncoded: false)
-                let result = await lintFiles(scanRoot: resolved, filterBase: resolved)
-                allDiagnostics.append(contentsOf: result.diagnostics)
-            }
         }
-
         return LintResult(diagnostics: allDiagnostics.sorted())
     }
 
     // MARK: - Private
+
+    /// Resolves scan roots and filter bases from CLI paths and config (SwiftLint-compatible).
+    private func resolveRoots(cliPaths: [String]) -> [(scanRoot: String, filterBase: String)] {
+        if let config, !config.includedPaths.isEmpty {
+            return [(config.rootDirectory, config.rootDirectory)]
+        }
+        let resolvedPaths = cliPaths.map { URL(filePath: $0).standardized.path(percentEncoded: false) }
+        if let config {
+            return resolvedPaths.map { ($0, config.rootDirectory) }
+        }
+        return resolvedPaths.map { ($0, $0) }
+    }
 
     @LintActor
     private func lintFiles(scanRoot: String, filterBase: String) async -> LintResult {
