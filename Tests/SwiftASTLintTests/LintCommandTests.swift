@@ -77,9 +77,10 @@ struct LinterTests {
         }
     }
 
-    @Test("Rule-level include restricts to specific files")
+    @Test("Config rule-level include restricts to specific files")
     func ruleInclude() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
             let fileManager = FileManager.default
             try fileManager.createDirectory(
                 at: dir.appendingPathComponent("Sources"),
@@ -92,13 +93,17 @@ struct LinterTests {
             try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
             try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
 
+            let config = Configuration(
+                rootDirectory: root,
+                rules: ["sources-only": RuleConfiguration(include: ["Sources/**"])],
+            )
             let rules = RuleSet {
-                Rule(id: "sources-only", severity: .warning, include: ["Sources/**"]) { file, ctx in
-                    ctx.report(on: file, message: "found")
+                Rule(id: "sources-only") { file, ctx in
+                    ctx.report(on: file, message: "found", severity: .warning)
                 }
             }
-            let linter = LintEngine(rules: rules)
-            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
+            let linter = LintEngine(rules: rules, config: config)
+            let result = await linter.lint(paths: [root])
             #expect(result.diagnostics.count == 1)
         }
     }
@@ -191,8 +196,8 @@ struct LinterTests {
             try "let x = 1\n".write(to: dir.appendingPathComponent("a.swift"), atomically: true, encoding: .utf8)
 
             let rules = RuleSet {
-                Rule(id: "r", severity: severity) { file, ctx in
-                    ctx.report(on: file, message: "msg")
+                Rule(id: "r") { file, ctx in
+                    ctx.report(on: file, message: "msg", severity: severity)
                 }
             }
             let linter = LintEngine(rules: rules)
@@ -201,7 +206,7 @@ struct LinterTests {
         }
     }
 
-    @Test("three-layer intersection: yml include + RuleSet exclude + Rule include")
+    @Test("three-layer intersection: yml include + RuleSet exclude + config rule include")
     func threeLayerIntersection() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
             let root = dir.path(percentEncoded: false)
@@ -217,14 +222,11 @@ struct LinterTests {
             let config = Configuration(
                 includedPaths: ["Sources/**/*.swift"],
                 rootDirectory: root,
+                rules: ["core-only": RuleConfiguration(include: ["Sources/Core/**"])],
             )
             let rules = RuleSet {
-                Rule(
-                    id: "core-only",
-                    severity: .warning,
-                    include: ["Sources/Core/**"],
-                ) { file, ctx in
-                    ctx.report(on: file, message: "found")
+                Rule(id: "core-only") { file, ctx in
+                    ctx.report(on: file, message: "found", severity: .warning)
                 }
             }.exclude(["Sources/Generated/**"])
 
@@ -250,8 +252,8 @@ struct LinterTests {
 
             let config = Configuration(includedPaths: ["Sources/**"], rootDirectory: root)
             let rules = RuleSet {
-                Rule(id: "all", severity: .warning) { file, ctx in
-                    ctx.report(on: file, message: "found")
+                Rule(id: "all") { file, ctx in
+                    ctx.report(on: file, message: "found", severity: .warning)
                 }
             }
             // Pass Tests/ as CLI path, but config includes only Sources/ — CLI path should be ignored
@@ -276,8 +278,8 @@ struct LinterTests {
             // excluded_paths is relative to config rootDirectory (project root), not CLI path
             let config = Configuration(excludedPaths: ["Tests/**"], rootDirectory: root)
             let rules = RuleSet {
-                Rule(id: "all", severity: .warning) { file, ctx in
-                    ctx.report(on: file, message: "found")
+                Rule(id: "all") { file, ctx in
+                    ctx.report(on: file, message: "found", severity: .warning)
                 }
             }
             let linter = LintEngine(rules: rules, config: config)
@@ -300,8 +302,8 @@ struct LinterTests {
             // Even if CLI passes ./Sources, the glob should still match
             let config = Configuration(includedPaths: ["Sources/**"], rootDirectory: root)
             let rules = RuleSet {
-                Rule(id: "all", severity: .warning) { file, ctx in
-                    ctx.report(on: file, message: "found")
+                Rule(id: "all") { file, ctx in
+                    ctx.report(on: file, message: "found", severity: .warning)
                 }
             }
             let linter = LintEngine(rules: rules, config: config)
@@ -325,8 +327,8 @@ struct LinterTests {
             // No included_paths — CLI paths should be used as scan roots
             let config = Configuration(excludedPaths: [], rootDirectory: root)
             let rules = RuleSet {
-                Rule(id: "all", severity: .warning) { file, ctx in
-                    ctx.report(on: file, message: "found")
+                Rule(id: "all") { file, ctx in
+                    ctx.report(on: file, message: "found", severity: .warning)
                 }
             }
             let linter = LintEngine(rules: rules, config: config)
