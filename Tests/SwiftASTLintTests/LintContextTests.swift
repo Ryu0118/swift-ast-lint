@@ -6,21 +6,20 @@ import Testing
 @Suite(
     """
     LintContext diagnostic collection: \
-    report accumulation, severity override, and file path tracking via @LintActor
+    report accumulation, explicit severity, and file path tracking via @LintActor
     """,
 )
 struct LintContextTests {
-    @Test("report with default severity")
+    @Test("report with explicit severity")
     @LintActor
     func reportDefault() throws {
         let (sourceFile, context) = makeLintContext(
             source: "let x = 1\n",
             filePath: "/test.swift",
             ruleID: "test-rule",
-            defaultSeverity: .warning,
         )
         let node = try #require(sourceFile.statements.first)
-        context.report(on: node, message: "test message")
+        context.report(on: node, message: "test message", severity: .warning)
         let diagnostics = context.collectDiagnostics()
         #expect(diagnostics.count == 1)
         #expect(diagnostics[0].severity == .warning)
@@ -29,13 +28,12 @@ struct LintContextTests {
         #expect(diagnostics[0].line == 1)
     }
 
-    @Test("report with severity override")
+    @Test("report severity is stored correctly")
     @LintActor
-    func reportOverride() throws {
+    func reportSeverity() throws {
         let (sourceFile, context) = makeLintContext(
             source: "let x = 1\n",
             ruleID: "test-rule",
-            defaultSeverity: .warning,
         )
         let node = try #require(sourceFile.statements.first)
         context.report(on: node, message: "err", severity: .error)
@@ -49,10 +47,9 @@ struct LintContextTests {
         let (sourceFile, context) = makeLintContext(
             source: "let x = 1\nlet y = 2\n",
             ruleID: "test-rule",
-            defaultSeverity: .warning,
         )
         for stmt in sourceFile.statements {
-            context.report(on: stmt, message: "found")
+            context.report(on: stmt, message: "found", severity: .warning)
         }
         let diagnostics = context.collectDiagnostics()
         #expect(diagnostics.count == 2)
@@ -64,7 +61,6 @@ struct LintContextTests {
         let (_, context) = makeLintContext(
             source: "let x = 1\n",
             filePath: "/my/file.swift",
-            defaultSeverity: .warning,
         )
         #expect(context.filePath == "/my/file.swift")
     }
