@@ -4,9 +4,19 @@
 [![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/Ryu0118/swift-ast-lint/releases/latest)
 [![License](https://img.shields.io/badge/License-MIT-007ec6?style=flat-square)](LICENSE)
 
-A minimal SwiftSyntax AST-based linting kit. Write lint rules directly in Swift, build your own linter executable, and run it against your codebase.
+**Build your own Swift linter at the syntax level.**
 
-**Philosophy:** Coding Agents have made yml-based rule abstraction obsolete. SwiftSyntax's API is rich enough to use directly. This package provides only the orchestration layer -- rule registration, file traversal, glob filtering, diagnostics output.
+Create project-specific lint rules programmatically in pure Swift. No YAML, no regex — just the full power of the AST.
+
+## Motivation
+
+SwiftLint is great for common coding style checks, but falls short when you need:
+
+- **Project-specific rules** — Enforce your team's architecture conventions and structural patterns that no generic linter covers.
+- **Complex structural checks** — "Every public class over 50 lines must be in its own file" or "No force-try in production code" — rules that require understanding the code structure, not just matching text.
+- **AST-level precision** — SwiftLint's custom rules are regex-based. Regex can't distinguish a function call from a comment, a type name from a variable. AST can.
+
+**Why now?** With AI coding assistants, writing SwiftSyntax rules has become dramatically easier. Describe the pattern you want to catch in natural language, and your AI writes the rule. What used to require deep SwiftSyntax expertise is now a simple prompt away.
 
 ## How It Works
 
@@ -177,14 +187,6 @@ Filter priority (intersection -- each level can only narrow):
 | `0` | No errors (warnings are OK) |
 | `1` | Runtime error (file I/O, config parse failure) |
 | `2` | Lint errors found (Claude Code hooks compatible) |
-
-## Architecture
-
-| Module | Role |
-|--------|------|
-| `SwiftASTLint` | Core library: Rule, RuleSet, LintContext, LintCommand, Diagnostic, GlobPattern, Configuration |
-| `SwiftASTLintScaffold` | Generates user-side linter packages via `swift package init` |
-| `swift-ast-lint-tool` | CLI entry point for scaffolding |
 
 ## License
 
