@@ -1,67 +1,76 @@
+import FileManagerProtocol
 import Foundation
 import Subprocess
 import System
 
-public enum Scaffold {
-    public static func generate(at path: String, name: String) async throws {
-        let fileManager = FileManager.default
+/// Generates a new Swift Package configured as a linter project.
+public struct Scaffold {
+    private let fileManager: any FileManagerProtocol
 
-        if !fileManager.fileExists(atPath: path) {
-            try fileManager.createDirectory(atPath: path, withIntermediateDirectories: true)
+    /// Creates a scaffold backed by the given file manager.
+    public init(fileManager: some FileManagerProtocol = FileManager.default) {
+        self.fileManager = fileManager
+    }
+
+    /// Generates a linter package at `path` with the given `name`.
+    public func generate(at path: String, name: String) async throws {
+        let resolvedPath = URL(filePath: path).standardized.path(percentEncoded: false)
+
+        if !fileManager.fileExists(atPath: resolvedPath) {
+            try fileManager.createDirectory(atPath: resolvedPath, withIntermediateDirectories: true)
         }
 
         // 1. swift package init --type empty
-        try await runSwift(at: path, arguments: ["package", "init", "--type", "empty", "--name", name])
+        try await runSwift(packagePath: resolvedPath, arguments: ["init", "--type", "empty", "--name", name])
 
         // 2. Add dependencies
-        try await runSwift(at: path, arguments: [
-            "package", "add-dependency",
-            "https://github.com/Ryu0118/swift-ast-lint.git",
-            "--from", "0.1.0",
+        try await runSwift(packagePath: resolvedPath, arguments: [
+            "add-dependency",
+            Constants.swiftASTLintURL,
+            "--from", Constants.swiftASTLintMinVersion,
         ])
-        try await runSwift(at: path, arguments: [
-            "package", "add-dependency",
-            "https://github.com/swiftlang/swift-syntax.git",
-            "--from", "602.0.0",
+        try await runSwift(packagePath: resolvedPath, arguments: [
+            "add-dependency",
+            Constants.swiftSyntaxURL,
+            "--from", Constants.swiftSyntaxMinVersion, "--to", Constants.swiftSyntaxMaxVersion,
         ])
 
         // 3. Add targets
-        try await runSwift(at: path, arguments: [
-            "package", "add-target", "Rules", "--type", "library",
+        try await runSwift(packagePath: resolvedPath, arguments: [
+            "add-target", Constants.rulesTarget, "--type", "library",
         ])
-        try await runSwift(at: path, arguments: [
-            "package", "add-target", "swift-ast-lint",
-            "--type", "executable", "--dependencies", "Rules",
+        try await runSwift(packagePath: resolvedPath, arguments: [
+            "add-target", Constants.executableTarget,
+            "--type", "executable", "--dependencies", Constants.rulesTarget,
         ])
 
         // 4. Add target dependencies (external products)
-        try await runSwift(at: path, arguments: [
-            "package", "add-target-dependency",
-            "SwiftASTLint", "Rules", "--package", "swift-ast-lint",
+        try await runSwift(packagePath: resolvedPath, arguments: [
+            "add-target-dependency",
+            Constants.swiftASTLintProduct, Constants.rulesTarget,
+            "--package", Constants.swiftASTLintPackage,
         ])
-        try await runSwift(at: path, arguments: [
-            "package", "add-target-dependency",
-            "SwiftSyntax", "Rules", "--package", "swift-syntax",
+        try await runSwift(packagePath: resolvedPath, arguments: [
+            "add-target-dependency",
+            Constants.swiftSyntaxProduct, Constants.rulesTarget,
+            "--package", Constants.swiftSyntaxPackage,
         ])
 
         // 5. Write source files
-        try writeSourceFiles(at: path)
+        try writeSourceFiles(at: resolvedPath)
 
         // 6. Write config
-        try ymlTemplate.write(
-            toFile: "\(path)/.swift-ast-lint.yml",
-            atomically: true,
-            encoding: .utf8,
-        )
+        try writeFile(content: Constants.ymlTemplate, atPath: "\(resolvedPath)/.swift-ast-lint.yml")
     }
 
     // MARK: - Private
 
-    private static func runSwift(at path: String, arguments: [String]) async throws {
+    private func runSwift(packagePath: String, arguments: [String]) async throws {
+        let fullArguments = ["package", "--package-path", packagePath] + arguments
         let result = try await run(
             .name("swift"),
-            arguments: Arguments(arguments),
-            workingDirectory: FilePath(path),
+            arguments: Arguments(fullArguments),
+            workingDirectory: FilePath(packagePath),
             output: .string(limit: 1024 * 1024),
             error: .string(limit: 1024 * 1024),
         )
@@ -69,62 +78,36 @@ public enum Scaffold {
         guard result.terminationStatus.isSuccess else {
             let errorOutput = result.standardError ?? ""
             throw ScaffoldError.commandFailed(
-                command: "swift \(arguments.joined(separator: " "))",
+                command: "swift \(fullArguments.joined(separator: " "))",
                 output: errorOutput,
             )
         }
     }
 
-    private static func writeSourceFiles(at path: String) throws {
-        let fileManager = FileManager.default
+    private func writeSourceFiles(at path: String) throws {
         let dirs = [
-            "\(path)/Sources/Rules",
-            "\(path)/Sources/swift-ast-lint",
+            "\(path)/Sources/\(Constants.rulesTarget)",
+            "\(path)/Sources/\(Constants.executableTarget)",
         ]
         for dir in dirs {
             try fileManager.createDirectory(atPath: dir, withIntermediateDirectories: true)
         }
 
         let files: [(String, String)] = [
-            ("Sources/swift-ast-lint/main.swift", mainSwift),
-            ("Sources/Rules/Rules.swift", rulesSwift),
+            ("Sources/\(Constants.executableTarget)/main.swift", Constants.mainSwift),
+            ("Sources/\(Constants.rulesTarget)/Rules.swift", Constants.rulesSwift),
         ]
         for (subpath, content) in files {
-            try content.write(
-                toFile: "\(path)/\(subpath)",
-                atomically: true,
-                encoding: .utf8,
-            )
+            try writeFile(content: content, atPath: "\(path)/\(subpath)")
         }
     }
 
-    // MARK: - Templates (source files only, not Package.swift)
-
-    private static let mainSwift =
-        """
-        import SwiftASTLint
-        import Rules
-
-        LintCommand.lint(rules)
-        """
-
-    private static let rulesSwift =
-        """
-        import SwiftASTLint
-        import SwiftSyntax
-
-        public let rules = RuleSet {
-            // Add your rules here
+    private func writeFile(content: String, atPath path: String) throws {
+        guard let data = content.data(using: .utf8) else {
+            throw ScaffoldError.commandFailed(command: "write", output: "Failed to encode content to UTF-8")
         }
-        """
-
-    private static let ymlTemplate =
-        """
-        included_paths:
-          - "Sources/**/*.swift"
-        excluded_paths:
-          - ".build/**"
-        """
+        _ = fileManager.createFile(atPath: path, contents: data)
+    }
 }
 
 public enum ScaffoldError: Error, CustomStringConvertible {

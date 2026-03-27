@@ -1,6 +1,9 @@
 import ArgumentParser
 import Foundation
+import Logging
 import SwiftASTLintScaffold
+
+private let logger = Logger(label: "swiftastlinttool")
 
 struct InitCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
@@ -20,6 +23,7 @@ struct InitCommand: AsyncParsableCommand {
         if let path {
             targetPath = path
         } else {
+            // swiftlint:disable:next no_raw_print
             Swift.print("Enter the path for the linter package (default: ./MyLinter):", terminator: " ")
             if let input = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !input.isEmpty {
                 targetPath = input
@@ -28,10 +32,16 @@ struct InitCommand: AsyncParsableCommand {
             }
         }
 
-        let resolvedPath = (targetPath as NSString).standardizingPath
-        let packageName = name ?? (resolvedPath as NSString).lastPathComponent
+        let resolvedURL = URL(filePath: targetPath).standardized
+        let resolvedPath = resolvedURL.path(percentEncoded: false)
+        let packageName = name ?? resolvedURL.lastPathComponent
 
-        try await Scaffold.generate(at: resolvedPath, name: packageName)
-        Swift.print("Generated linter package '\(packageName)' at \(resolvedPath)")
+        do {
+            try await Scaffold().generate(at: resolvedPath, name: packageName)
+            logger.info("Generated linter package '\(packageName)' at \(resolvedPath)")
+        } catch {
+            logger.error("\(error)")
+            throw ExitCode(1)
+        }
     }
 }
