@@ -12,6 +12,7 @@ included:
   - Package.swift
 
 opt_in_rules:
+  - missing_docs
   - force_unwrapping
   - closure_end_indentation
   - closure_spacing
@@ -125,15 +126,33 @@ custom_rules:
 
   url_file_url_with_path:
     regex: 'URL\(fileURLWithPath:'
-    message: "Use URL(filePath:directoryHint:) instead of URL(fileURLWithPath:isDirectory:)."
-    severity: warning
+    message: "Use URL(filePath:directoryHint:) instead of URL(fileURLWithPath:)."
+    severity: error
+
+  no_nsstring_cast:
+    regex: '\bas NSString\b'
+    message: "Use URL(filePath:) APIs instead of NSString path manipulation."
+    severity: error
+
+  no_bare_dot_path:
+    regex: '\.path\b(?!\s*\()'
+    message: "Use .path(percentEncoded: false) instead of .path to avoid percent-encoded paths."
+    severity: error
 
   no_raw_print:
-    regex: '^\s*print\s*\('
-    message: "Use logger or Diagnostic output instead of print()."
-    severity: warning
-    excluded:
-      - ".*/Package\\.swift"
+    regex: '\b(Swift\.)?print\s*\('
+    message: "Use logger instead of print()."
+    severity: error
+
+  no_fputs:
+    regex: '\bfputs\s*\('
+    message: "Use logger instead of fputs()."
+    severity: error
+
+  no_nonisolated_unsafe:
+    regex: 'nonisolated\(unsafe\)'
+    message: "nonisolated(unsafe) is prohibited. Use actor isolation or Mutex."
+    severity: error
 
   no_legacy_synchronization:
     regex: '\bDispatchQueue\b|\bNSLock\b|\bNSRecursiveLock\b|\bos_unfair_lock\b'
