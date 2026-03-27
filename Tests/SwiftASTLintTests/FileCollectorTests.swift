@@ -15,7 +15,7 @@ struct FileCollectorTests {
     @Test("collects only .swift files, sorted alphabetically")
     func collectSwiftFiles() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
-            let root = dir.path
+            let root = dir.path(percentEncoded: false)
             try "".write(toFile: "\(root)/b.swift", atomically: true, encoding: .utf8)
             try "".write(toFile: "\(root)/a.swift", atomically: true, encoding: .utf8)
             try "".write(toFile: "\(root)/c.txt", atomically: true, encoding: .utf8)
@@ -30,7 +30,7 @@ struct FileCollectorTests {
     @Test("collects files in subdirectories")
     func collectNestedFiles() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
-            let root = dir.path
+            let root = dir.path(percentEncoded: false)
             try FileManager.default.createDirectory(
                 atPath: "\(root)/Sources/Foo",
                 withIntermediateDirectories: true,

@@ -16,17 +16,16 @@ struct ConfigurationLoaderTests {
             """
             let path = dir.appendingPathComponent(".swift-ast-lint.yml")
             try yml.write(to: path, atomically: true, encoding: .utf8)
-            let config = try ConfigurationLoader.load(from: path.path)
+            let config = try #require(try ConfigurationLoader().load(from: path.path(percentEncoded: false)))
             #expect(config.includedPaths == ["Sources/**/*.swift"])
             #expect(config.excludedPaths == [".build/**"])
         }
     }
 
-    @Test("missing file throws")
-    func missingFile() {
-        #expect(throws: (any Error).self) {
-            try ConfigurationLoader.load(from: "/nonexistent/.swift-ast-lint.yml")
-        }
+    @Test("missing file returns nil")
+    func missingFile() throws {
+        let config = try ConfigurationLoader().load(from: "/nonexistent/.swift-ast-lint.yml")
+        #expect(config == nil)
     }
 
     @Test("empty yml returns empty config")
@@ -34,7 +33,7 @@ struct ConfigurationLoaderTests {
         try await FileManager.default.runInTemporaryDirectory { dir in
             let path = dir.appendingPathComponent("cfg.yml")
             try "".write(to: path, atomically: true, encoding: .utf8)
-            let config = try ConfigurationLoader.load(from: path.path)
+            let config = try #require(try ConfigurationLoader().load(from: path.path(percentEncoded: false)))
             #expect(config.includedPaths.isEmpty)
             #expect(config.excludedPaths.isEmpty)
         }
@@ -46,18 +45,18 @@ struct ConfigurationLoaderTests {
             let path = dir.appendingPathComponent("bad.yml")
             try "{{{{not yaml".write(to: path, atomically: true, encoding: .utf8)
             #expect(throws: (any Error).self) {
-                try ConfigurationLoader.load(from: path.path)
+                try ConfigurationLoader().load(from: path.path(percentEncoded: false))
             }
         }
     }
 
-    @Test("non-dictionary YAML throws invalidFormat")
+    @Test("non-dictionary YAML throws DecodingError")
     func nonDictYml() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
             let path = dir.appendingPathComponent("list.yml")
             try "- foo\n- bar\n".write(to: path, atomically: true, encoding: .utf8)
-            #expect(throws: ConfigurationError.self) {
-                try ConfigurationLoader.load(from: path.path)
+            #expect(throws: DecodingError.self) {
+                try ConfigurationLoader().load(from: path.path(percentEncoded: false))
             }
         }
     }
@@ -68,7 +67,7 @@ struct ConfigurationLoaderTests {
             let yml = "included_paths:\n  - \"Sources/**\"\n"
             let path = dir.appendingPathComponent("inc.yml")
             try yml.write(to: path, atomically: true, encoding: .utf8)
-            let config = try ConfigurationLoader.load(from: path.path)
+            let config = try #require(try ConfigurationLoader().load(from: path.path(percentEncoded: false)))
             #expect(config.includedPaths == ["Sources/**"])
             #expect(config.excludedPaths.isEmpty)
         }
@@ -80,7 +79,7 @@ struct ConfigurationLoaderTests {
             let yml = "excluded_paths:\n  - \".build/**\"\n"
             let path = dir.appendingPathComponent("exc.yml")
             try yml.write(to: path, atomically: true, encoding: .utf8)
-            let config = try ConfigurationLoader.load(from: path.path)
+            let config = try #require(try ConfigurationLoader().load(from: path.path(percentEncoded: false)))
             #expect(config.includedPaths.isEmpty)
             #expect(config.excludedPaths == [".build/**"])
         }

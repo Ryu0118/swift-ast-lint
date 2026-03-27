@@ -9,11 +9,11 @@ import Testing
 
 @Suite(
     """
-    LintCommand end-to-end: file traversal, \
+    Linter end-to-end: file traversal, \
     intersection filtering (yml > RuleSet > Rule), sort order, and exit code mapping
     """,
 )
-struct LintCommandTests {
+struct LinterTests {
     @Test("lint single file with one rule producing warning")
     func singleWarning() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
@@ -24,7 +24,8 @@ struct LintCommandTests {
                     ctx.report(on: file, message: "found code")
                 }
             }
-            let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir.path)
+            let linter = LintEngine(rules: rules)
+            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
             #expect(result.diagnostics.count == 1)
             #expect(result.diagnostics[0].severity == .warning)
             #expect(result.hasErrors == false)
@@ -41,7 +42,8 @@ struct LintCommandTests {
                     ctx.report(on: file, message: "bad")
                 }
             }
-            let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir.path)
+            let linter = LintEngine(rules: rules)
+            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
             #expect(result.hasErrors == true)
         }
     }
@@ -67,7 +69,8 @@ struct LintCommandTests {
                     ctx.report(on: file, message: "found")
                 }
             }
-            let result = try await LintCommand.lintFiles(rules: rules, config: config, rootPath: dir.path)
+            let linter = LintEngine(rules: rules, config: config)
+            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
             #expect(result.diagnostics.count == 1)
             #expect(result.diagnostics[0].filePath.contains("Sources"))
         }
@@ -93,7 +96,8 @@ struct LintCommandTests {
                     ctx.report(on: file, message: "found")
                 }
             }
-            let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir.path)
+            let linter = LintEngine(rules: rules)
+            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
             #expect(result.diagnostics.count == 1)
         }
     }
@@ -111,7 +115,8 @@ struct LintCommandTests {
                     }
                 }
             }
-            let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir.path)
+            let linter = LintEngine(rules: rules)
+            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
             let paths = result.diagnostics.map(\.filePath)
             #expect(paths.first!.hasSuffix("a.swift"))
         }
@@ -125,7 +130,8 @@ struct LintCommandTests {
                     ctx.report(on: Parser.parse(source: ""), message: "never")
                 }
             }
-            let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir.path)
+            let linter = LintEngine(rules: rules)
+            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
             #expect(result.diagnostics.isEmpty)
         }
     }
@@ -150,7 +156,8 @@ struct LintCommandTests {
                     ctx.report(on: file, message: "found")
                 }
             }.include(["Sources/**"])
-            let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir.path)
+            let linter = LintEngine(rules: rules)
+            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
             #expect(result.diagnostics.count == 1)
             #expect(result.diagnostics[0].filePath.contains("Sources"))
         }
@@ -167,7 +174,8 @@ struct LintCommandTests {
                     ctx.report(on: file, message: "found")
                 }
             }.exclude(["**/*Generated.swift"])
-            let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir.path)
+            let linter = LintEngine(rules: rules)
+            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
             #expect(result.diagnostics.count == 1)
             #expect(result.diagnostics[0].filePath.contains("keep"))
         }
@@ -186,7 +194,8 @@ struct LintCommandTests {
                     ctx.report(on: file, message: "msg")
                 }
             }
-            let result = try await LintCommand.lintFiles(rules: rules, config: nil, rootPath: dir.path)
+            let linter = LintEngine(rules: rules)
+            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
             #expect(result.hasErrors == expectedHasErrors)
         }
     }
@@ -219,7 +228,8 @@ struct LintCommandTests {
                 }
             }.exclude(["Sources/Generated/**"])
 
-            let result = try await LintCommand.lintFiles(rules: rules, config: config, rootPath: dir.path)
+            let linter = LintEngine(rules: rules, config: config)
+            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
             // Only Sources/Core/a.swift should survive all 3 layers
             #expect(result.diagnostics.count == 1)
             #expect(result.diagnostics[0].filePath.contains("Core/a.swift"))
