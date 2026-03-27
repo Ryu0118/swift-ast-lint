@@ -7,13 +7,14 @@ import Testing
 
 // swiftlint:disable line_length
 
+private struct TestArgs: Codable {
+    var threshold: Int = 99
+}
+
 @Suite("ParameterizedRule: YAML args override, defaults, per-rule include/exclude, ConfigurationLoader rules")
 struct ParameterizedRuleTests {
     @Test("ParameterizedRule uses default arguments when no YAML args")
     func parameterizedDefaultArgs() async throws {
-        struct TestArgs: Codable, Sendable {
-            var threshold: Int = 99
-        }
         try await FileManager.default.runInTemporaryDirectory { dir in
             try "let x = 1\n".write(to: dir.appendingPathComponent("a.swift"), atomically: true, encoding: .utf8)
 
@@ -31,9 +32,6 @@ struct ParameterizedRuleTests {
 
     @Test("ParameterizedRule uses YAML args when configured")
     func parameterizedYAMLArgs() async throws {
-        struct TestArgs: Codable, Sendable {
-            var threshold: Int = 99
-        }
         try await FileManager.default.runInTemporaryDirectory { dir in
             let root = dir.path(percentEncoded: false)
             try "let x = 1\n".write(to: dir.appendingPathComponent("a.swift"), atomically: true, encoding: .utf8)
@@ -56,9 +54,6 @@ struct ParameterizedRuleTests {
 
     @Test("ParameterizedRule falls back to defaults on invalid YAML args")
     func parameterizedInvalidArgs() async throws {
-        struct TestArgs: Codable, Sendable {
-            var threshold: Int = 99
-        }
         try await FileManager.default.runInTemporaryDirectory { dir in
             let root = dir.path(percentEncoded: false)
             try "let x = 1\n".write(to: dir.appendingPathComponent("a.swift"), atomically: true, encoding: .utf8)
