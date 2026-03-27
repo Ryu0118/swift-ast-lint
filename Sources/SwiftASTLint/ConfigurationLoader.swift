@@ -1,25 +1,26 @@
+import FileManagerProtocol
 import Foundation
 import Yams
 
-public enum ConfigurationError: Error {
-    case invalidFormat
-}
+/// Loads a ``Configuration`` from a YAML file on disk.
+public struct ConfigurationLoader {
+    private let fileManager: any FileManagerProtocol
 
-public enum ConfigurationLoader {
-    public static func load(from path: String) throws -> Configuration {
+    /// Creates a loader backed by the given file manager.
+    public init(fileManager: some FileManagerProtocol = FileManager.default) {
+        self.fileManager = fileManager
+    }
+
+    /// Loads configuration from `path`. Returns `nil` if the file does not exist.
+    public func load(from path: String) throws -> Configuration? {
+        guard fileManager.fileExists(atPath: path) else {
+            return nil
+        }
         let content = try String(contentsOfFile: path, encoding: .utf8)
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return Configuration()
         }
-        let parsed = try Yams.load(yaml: content)
-        if parsed == nil {
-            return Configuration()
-        }
-        guard let yaml = parsed as? [String: Any] else {
-            throw ConfigurationError.invalidFormat
-        }
-        let included = (yaml["included_paths"] as? [String]) ?? []
-        let excluded = (yaml["excluded_paths"] as? [String]) ?? []
-        return Configuration(includedPaths: included, excludedPaths: excluded)
+        let decoder = YAMLDecoder()
+        return try decoder.decode(Configuration.self, from: content)
     }
 }
