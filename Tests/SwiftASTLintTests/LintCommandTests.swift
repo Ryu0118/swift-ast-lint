@@ -20,8 +20,8 @@ struct LinterTests {
             try "let x = 1\n".write(to: dir.appendingPathComponent("a.swift"), atomically: true, encoding: .utf8)
 
             let rules = RuleSet {
-                Rule(id: "always-warn", severity: .warning) { file, ctx in
-                    ctx.report(on: file, message: "found code")
+                Rule(id: "always-warn") { file, ctx in
+                    ctx.report(on: file, message: "found code", severity: .warning)
                 }
             }
             let linter = LintEngine(rules: rules)
@@ -38,8 +38,8 @@ struct LinterTests {
             try "let x = 1\n".write(to: dir.appendingPathComponent("a.swift"), atomically: true, encoding: .utf8)
 
             let rules = RuleSet {
-                Rule(id: "always-err", severity: .error) { file, ctx in
-                    ctx.report(on: file, message: "bad")
+                Rule(id: "always-err") { file, ctx in
+                    ctx.report(on: file, message: "bad", severity: .error)
                 }
             }
             let linter = LintEngine(rules: rules)
@@ -66,8 +66,8 @@ struct LinterTests {
 
             let config = Configuration(excludedPaths: ["Generated/**"], rootDirectory: root)
             let rules = RuleSet {
-                Rule(id: "count", severity: .warning) { file, ctx in
-                    ctx.report(on: file, message: "found")
+                Rule(id: "count") { file, ctx in
+                    ctx.report(on: file, message: "found", severity: .warning)
                 }
             }
             let linter = LintEngine(rules: rules, config: config)
@@ -110,9 +110,9 @@ struct LinterTests {
             try "let z = 3\n".write(to: dir.appendingPathComponent("a.swift"), atomically: true, encoding: .utf8)
 
             let rules = RuleSet {
-                Rule(id: "all", severity: .warning) { file, ctx in
+                Rule(id: "all") { file, ctx in
                     for stmt in file.statements {
-                        ctx.report(on: stmt, message: "found")
+                        ctx.report(on: stmt, message: "found", severity: .warning)
                     }
                 }
             }
@@ -127,8 +127,8 @@ struct LinterTests {
     func noFiles() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
             let rules = RuleSet {
-                Rule(id: "x", severity: .warning) { _, ctx in
-                    ctx.report(on: Parser.parse(source: ""), message: "never")
+                Rule(id: "x") { _, ctx in
+                    ctx.report(on: Parser.parse(source: ""), message: "never", severity: .warning)
                 }
             }
             let linter = LintEngine(rules: rules)
@@ -153,8 +153,8 @@ struct LinterTests {
             try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
 
             let rules = RuleSet {
-                Rule(id: "all", severity: .warning) { file, ctx in
-                    ctx.report(on: file, message: "found")
+                Rule(id: "all") { file, ctx in
+                    ctx.report(on: file, message: "found", severity: .warning)
                 }
             }.include(["Sources/**"])
             let linter = LintEngine(rules: rules)
@@ -171,8 +171,8 @@ struct LinterTests {
             try "let b = 2\n".write(to: dir.appendingPathComponent("skip_Generated.swift"), atomically: true, encoding: .utf8)
 
             let rules = RuleSet {
-                Rule(id: "all", severity: .warning) { file, ctx in
-                    ctx.report(on: file, message: "found")
+                Rule(id: "all") { file, ctx in
+                    ctx.report(on: file, message: "found", severity: .warning)
                 }
             }.exclude(["**/*Generated.swift"])
             let linter = LintEngine(rules: rules)
