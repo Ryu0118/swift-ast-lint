@@ -108,45 +108,30 @@ struct FileCollectorTests {
 
     // MARK: - ruleApplies
 
-    @Test("rule with empty include/exclude applies to all files")
+    @Test("empty include/exclude applies to all files")
     func ruleAppliesAll() {
-        let rule = Rule(id: "test", severity: .warning) { _, _ in }
-        #expect(FileCollector.ruleApplies(rule, to: "any/path.swift"))
+        #expect(FileCollector.ruleApplies(include: [], exclude: [], to: "any/path.swift"))
     }
 
-    @Test("rule with include only applies to matching files")
+    @Test("include only applies to matching files")
     func ruleAppliesInclude() {
-        let rule = Rule(
-            id: "test",
-            severity: .warning,
-            include: ["Sources/**"],
-        ) { _, _ in }
-        #expect(FileCollector.ruleApplies(rule, to: "Sources/a.swift"))
-        #expect(!FileCollector.ruleApplies(rule, to: "Tests/b.swift"))
+        #expect(FileCollector.ruleApplies(include: ["Sources/**"], exclude: [], to: "Sources/a.swift"))
+        #expect(!FileCollector.ruleApplies(include: ["Sources/**"], exclude: [], to: "Tests/b.swift"))
     }
 
-    @Test("rule with exclude skips matching files")
+    @Test("exclude skips matching files")
     func ruleAppliesExclude() {
-        let rule = Rule(
-            id: "test",
-            severity: .warning,
-            exclude: ["**/*Generated.swift"],
-        ) { _, _ in }
-        #expect(FileCollector.ruleApplies(rule, to: "a.swift"))
-        #expect(!FileCollector.ruleApplies(rule, to: "FooGenerated.swift"))
+        #expect(FileCollector.ruleApplies(include: [], exclude: ["**/*Generated.swift"], to: "a.swift"))
+        #expect(!FileCollector.ruleApplies(include: [], exclude: ["**/*Generated.swift"], to: "FooGenerated.swift"))
     }
 
-    @Test("rule with both include and exclude")
+    @Test("include and exclude together")
     func ruleAppliesBoth() {
-        let rule = Rule(
-            id: "test",
-            severity: .warning,
-            include: ["Sources/**"],
-            exclude: ["**/*Generated.swift"],
-        ) { _, _ in }
-        #expect(FileCollector.ruleApplies(rule, to: "Sources/a.swift"))
-        #expect(!FileCollector.ruleApplies(rule, to: "Sources/FooGenerated.swift"))
-        #expect(!FileCollector.ruleApplies(rule, to: "Tests/b.swift"))
+        let include = ["Sources/**"]
+        let exclude = ["**/*Generated.swift"]
+        #expect(FileCollector.ruleApplies(include: include, exclude: exclude, to: "Sources/a.swift"))
+        #expect(!FileCollector.ruleApplies(include: include, exclude: exclude, to: "Sources/FooGenerated.swift"))
+        #expect(!FileCollector.ruleApplies(include: include, exclude: exclude, to: "Tests/b.swift"))
     }
 
     // MARK: - makeRelative
