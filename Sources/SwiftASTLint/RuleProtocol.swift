@@ -1,4 +1,3 @@
-import SwiftParser
 import SwiftSyntax
 import Yams
 
@@ -21,18 +20,6 @@ public protocol RuleProtocol: Sendable {
 
     /// Checks a source file and reports diagnostics via the context.
     @LintActor func check(_ file: SourceFileSyntax, _ context: LintContext, _ arguments: Arguments)
-}
-
-public extension RuleProtocol {
-    /// Lints a source string and returns diagnostics. Convenience for testing rules.
-    @LintActor
-    func lint(source: String, fileName: String = "test.swift", argsYAML: String? = nil) -> [Diagnostic] {
-        let file = SwiftParser.Parser.parse(source: source)
-        let converter = SourceLocationConverter(fileName: fileName, tree: file)
-        let context = LintContext(filePath: fileName, sourceLocationConverter: converter, ruleID: id)
-        execute(file: file, context: context, argsYAML: argsYAML)
-        return context.collectDiagnostics()
-    }
 }
 
 package extension RuleProtocol {

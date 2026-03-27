@@ -6,6 +6,7 @@ let package = Package(
     platforms: [.macOS(.v15)],
     products: [
         .library(name: "SwiftASTLint", targets: ["SwiftASTLint"]),
+        .library(name: "SwiftASTLintTestSupport", targets: ["SwiftASTLintTestSupport"]),
         .library(name: "SwiftASTLintScaffold", targets: ["SwiftASTLintScaffold"]),
         .executable(name: "swiftastlinttool", targets: ["swift-ast-lint-tool"]),
     ],
@@ -29,6 +30,14 @@ let package = Package(
                 .product(name: "AsyncOperations", package: "swift-async-operations"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "FileManagerProtocol", package: "FileManagerProtocol"),
+            ],
+        ),
+        .target(
+            name: "SwiftASTLintTestSupport",
+            dependencies: [
+                "SwiftASTLint",
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftParser", package: "swift-syntax"),
             ],
         ),
         .target(
