@@ -53,8 +53,6 @@ public let rules = RuleSet {
     myParameterizedRule
     Rule(id: "simple") { file, ctx in ... }
 }
-.include(["Sources/**"])
-.exclude(["**/*Generated.swift"])
 ```
 
 ## YAML Config (`.swift-ast-lint.yml`)

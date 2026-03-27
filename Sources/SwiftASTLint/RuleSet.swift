@@ -1,33 +1,11 @@
-/// An ordered collection of lint rules with optional global include/exclude filters.
+/// An ordered collection of lint rules.
 public struct RuleSet: Sendable {
     /// The rules in this set.
     public let rules: [any RuleProtocol]
-    /// Glob patterns that restrict which files are linted.
-    public let globalInclude: [String]
-    /// Glob patterns that exclude files from linting.
-    public let globalExclude: [String]
 
     /// Creates a rule set using the ``RuleSetBuilder`` result builder.
     public init(@RuleSetBuilder _ build: () -> [any RuleProtocol]) {
         rules = build()
-        globalInclude = []
-        globalExclude = []
-    }
-
-    private init(rules: [any RuleProtocol], globalInclude: [String], globalExclude: [String]) {
-        self.rules = rules
-        self.globalInclude = globalInclude
-        self.globalExclude = globalExclude
-    }
-
-    /// Returns a new rule set with additional include patterns.
-    public func include(_ patterns: [String]) -> RuleSet {
-        RuleSet(rules: rules, globalInclude: globalInclude + patterns, globalExclude: globalExclude)
-    }
-
-    /// Returns a new rule set with additional exclude patterns.
-    public func exclude(_ patterns: [String]) -> RuleSet {
-        RuleSet(rules: rules, globalInclude: globalInclude, globalExclude: globalExclude + patterns)
     }
 }
 

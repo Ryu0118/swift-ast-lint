@@ -56,12 +56,10 @@ package struct LintEngine {
             return LintResult(diagnostics: [])
         }
 
-        let include = (config?.includedPaths ?? []) + rules.globalInclude
-        let exclude = (config?.excludedPaths ?? []) + rules.globalExclude
         let filtered = fileCollector.applyFilters(
             files: allSwiftFiles,
-            include: include,
-            exclude: exclude,
+            include: config?.includedPaths ?? [],
+            exclude: config?.excludedPaths ?? [],
             rootPath: filterBase,
         )
 

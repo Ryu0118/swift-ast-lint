@@ -142,46 +142,44 @@ struct LinterTests {
         }
     }
 
-    @Test("RuleSet globalInclude restricts file universe")
-    func ruleSetGlobalInclude() async throws {
+    @Test("config included_paths restricts file universe")
+    func configIncludedPaths() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
             let fileManager = FileManager.default
-            try fileManager.createDirectory(
-                at: dir.appendingPathComponent("Sources"),
-                withIntermediateDirectories: true,
-            )
-            try fileManager.createDirectory(
-                at: dir.appendingPathComponent("Tests"),
-                withIntermediateDirectories: true,
-            )
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Sources"), withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Tests"), withIntermediateDirectories: true)
             try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
             try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
 
+            let config = Configuration(includedPaths: ["Sources/**"], rootDirectory: root)
             let rules = RuleSet {
                 Rule(id: "all") { file, ctx in
                     ctx.report(on: file, message: "found", severity: .warning)
                 }
-            }.include(["Sources/**"])
-            let linter = LintEngine(rules: rules)
-            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
+            }
+            let linter = LintEngine(rules: rules, config: config)
+            let result = await linter.lint(paths: [root])
             #expect(result.diagnostics.count == 1)
             #expect(result.diagnostics[0].filePath.contains("Sources"))
         }
     }
 
-    @Test("RuleSet globalExclude removes files")
-    func ruleSetGlobalExclude() async throws {
+    @Test("config excluded_paths removes files")
+    func configExcludedPaths() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
             try "let a = 1\n".write(to: dir.appendingPathComponent("keep.swift"), atomically: true, encoding: .utf8)
             try "let b = 2\n".write(to: dir.appendingPathComponent("skip_Generated.swift"), atomically: true, encoding: .utf8)
 
+            let config = Configuration(excludedPaths: ["**/*Generated.swift"], rootDirectory: root)
             let rules = RuleSet {
                 Rule(id: "all") { file, ctx in
                     ctx.report(on: file, message: "found", severity: .warning)
                 }
-            }.exclude(["**/*Generated.swift"])
-            let linter = LintEngine(rules: rules)
-            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
+            }
+            let linter = LintEngine(rules: rules, config: config)
+            let result = await linter.lint(paths: [root])
             #expect(result.diagnostics.count == 1)
             #expect(result.diagnostics[0].filePath.contains("keep"))
         }
@@ -221,6 +219,7 @@ struct LinterTests {
 
             let config = Configuration(
                 includedPaths: ["Sources/**/*.swift"],
+                excludedPaths: ["Sources/Generated/**"],
                 rootDirectory: root,
                 rules: ["core-only": RuleConfiguration(include: ["Sources/Core/**"])],
             )
@@ -228,7 +227,7 @@ struct LinterTests {
                 Rule(id: "core-only") { file, ctx in
                     ctx.report(on: file, message: "found", severity: .warning)
                 }
-            }.exclude(["Sources/Generated/**"])
+            }
 
             let linter = LintEngine(rules: rules, config: config)
             let result = await linter.lint(paths: [root])
