@@ -1,23 +1,24 @@
 import SwiftSyntax
 
-public struct Rule: Sendable {
+/// A lint rule with no configurable arguments. Use ``ParameterizedRule`` for rules with arguments.
+public struct Rule: RuleProtocol {
+    /// Unique identifier for this rule.
     public let id: String
-    public let severity: Severity
-    public let include: [String]
-    public let exclude: [String]
-    public let check: @Sendable @LintActor (SourceFileSyntax, LintContext) -> Void
+    /// Empty arguments (this rule takes no configuration).
+    public let defaultArguments = EmptyArguments()
+    private let body: @Sendable @LintActor (SourceFileSyntax, LintContext) -> Void
 
+    /// Creates a rule with no arguments.
     public init(
         id: String,
-        severity: Severity,
-        include: [String] = [],
-        exclude: [String] = [],
         check: @escaping @Sendable @LintActor (SourceFileSyntax, LintContext) -> Void,
     ) {
         self.id = id
-        self.severity = severity
-        self.include = include
-        self.exclude = exclude
-        self.check = check
+        body = check
+    }
+
+    @LintActor
+    public func check(_ file: SourceFileSyntax, _ context: LintContext, _ arguments: EmptyArguments) {
+        body(file, context)
     }
 }

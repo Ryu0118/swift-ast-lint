@@ -1,20 +1,20 @@
 /// An ordered collection of lint rules with optional global include/exclude filters.
 public struct RuleSet: Sendable {
     /// The rules in this set.
-    public let rules: [Rule]
+    public let rules: [any RuleProtocol]
     /// Glob patterns that restrict which files are linted.
     public let globalInclude: [String]
     /// Glob patterns that exclude files from linting.
     public let globalExclude: [String]
 
     /// Creates a rule set using the ``RuleSetBuilder`` result builder.
-    public init(@RuleSetBuilder _ build: () -> [Rule]) {
+    public init(@RuleSetBuilder _ build: () -> [any RuleProtocol]) {
         rules = build()
         globalInclude = []
         globalExclude = []
     }
 
-    private init(rules: [Rule], globalInclude: [String], globalExclude: [String]) {
+    private init(rules: [any RuleProtocol], globalInclude: [String], globalExclude: [String]) {
         self.rules = rules
         self.globalInclude = globalInclude
         self.globalExclude = globalExclude
@@ -31,36 +31,36 @@ public struct RuleSet: Sendable {
     }
 }
 
-/// Result builder for composing an array of ``Rule`` values.
+/// Result builder for composing an array of rules.
 @resultBuilder
 public struct RuleSetBuilder {
     /// Wraps a single rule into an array.
-    public static func buildExpression(_ rule: Rule) -> [Rule] {
+    public static func buildExpression(_ rule: some RuleProtocol) -> [any RuleProtocol] {
         [rule]
     }
 
     /// Concatenates rule arrays from each statement.
-    public static func buildBlock(_ components: [Rule]...) -> [Rule] {
+    public static func buildBlock(_ components: [any RuleProtocol]...) -> [any RuleProtocol] {
         components.flatMap(\.self)
     }
 
     /// Handles optional `if` without `else`.
-    public static func buildOptional(_ component: [Rule]?) -> [Rule] {
+    public static func buildOptional(_ component: [any RuleProtocol]?) -> [any RuleProtocol] {
         component ?? []
     }
 
     /// Handles the `if` branch of `if-else`.
-    public static func buildEither(first component: [Rule]) -> [Rule] {
+    public static func buildEither(first component: [any RuleProtocol]) -> [any RuleProtocol] {
         component
     }
 
     /// Handles the `else` branch of `if-else`.
-    public static func buildEither(second component: [Rule]) -> [Rule] {
+    public static func buildEither(second component: [any RuleProtocol]) -> [any RuleProtocol] {
         component
     }
 
     /// Handles `for-in` loops.
-    public static func buildArray(_ components: [[Rule]]) -> [Rule] {
+    public static func buildArray(_ components: [[any RuleProtocol]]) -> [any RuleProtocol] {
         components.flatMap(\.self)
     }
 }
