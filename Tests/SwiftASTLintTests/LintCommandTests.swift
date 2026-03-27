@@ -9,7 +9,7 @@ import Testing
 
 @Suite(
     """
-    Linter end-to-end: file traversal, \
+    LintEngine end-to-end: file traversal, \
     intersection filtering (yml > RuleSet > Rule), sort order, and exit code mapping
     """,
 )
@@ -51,6 +51,7 @@ struct LinterTests {
     @Test("yml excluded_paths filters files")
     func ymlExclude() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
             let fileManager = FileManager.default
             try fileManager.createDirectory(
                 at: dir.appendingPathComponent("Sources"),
@@ -63,14 +64,14 @@ struct LinterTests {
             try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
             try "let b = 2\n".write(to: dir.appendingPathComponent("Generated/b.swift"), atomically: true, encoding: .utf8)
 
-            let config = Configuration(excludedPaths: ["Generated/**"])
+            let config = Configuration(excludedPaths: ["Generated/**"], rootDirectory: root)
             let rules = RuleSet {
                 Rule(id: "count", severity: .warning) { file, ctx in
                     ctx.report(on: file, message: "found")
                 }
             }
             let linter = LintEngine(rules: rules, config: config)
-            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
+            let result = await linter.lint(paths: [root])
             #expect(result.diagnostics.count == 1)
             #expect(result.diagnostics[0].filePath.contains("Sources"))
         }
@@ -203,6 +204,7 @@ struct LinterTests {
     @Test("three-layer intersection: yml include + RuleSet exclude + Rule include")
     func threeLayerIntersection() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
             let fileManager = FileManager.default
             try fileManager.createDirectory(at: dir.appendingPathComponent("Sources/Core"), withIntermediateDirectories: true)
             try fileManager.createDirectory(at: dir.appendingPathComponent("Sources/Generated"), withIntermediateDirectories: true)
@@ -212,12 +214,10 @@ struct LinterTests {
             try "let b = 2\n".write(to: dir.appendingPathComponent("Sources/Generated/b.swift"), atomically: true, encoding: .utf8)
             try "let c = 3\n".write(to: dir.appendingPathComponent("Tests/c.swift"), atomically: true, encoding: .utf8)
 
-            // yml: only Sources/**
             let config = Configuration(
                 includedPaths: ["Sources/**/*.swift"],
+                rootDirectory: root,
             )
-            // RuleSet: exclude Generated
-            // Rule: include only Core
             let rules = RuleSet {
                 Rule(
                     id: "core-only",
@@ -229,10 +229,110 @@ struct LinterTests {
             }.exclude(["Sources/Generated/**"])
 
             let linter = LintEngine(rules: rules, config: config)
-            let result = await linter.lint(paths: [dir.path(percentEncoded: false)])
-            // Only Sources/Core/a.swift should survive all 3 layers
+            let result = await linter.lint(paths: [root])
             #expect(result.diagnostics.count == 1)
             #expect(result.diagnostics[0].filePath.contains("Core/a.swift"))
+        }
+    }
+
+    // MARK: - SwiftLint-compatible path resolution
+
+    @Test("included_paths overrides CLI paths (SwiftLint behavior)")
+    func configIncludedOverridesCLIPaths() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Sources"), withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Tests"), withIntermediateDirectories: true)
+
+            try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
+            try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
+
+            let config = Configuration(includedPaths: ["Sources/**"], rootDirectory: root)
+            let rules = RuleSet {
+                Rule(id: "all", severity: .warning) { file, ctx in
+                    ctx.report(on: file, message: "found")
+                }
+            }
+            // Pass Tests/ as CLI path, but config includes only Sources/ — CLI path should be ignored
+            let linter = LintEngine(rules: rules, config: config)
+            let result = await linter.lint(paths: ["\(root)/Tests"])
+            #expect(result.diagnostics.count == 1)
+            #expect(result.diagnostics[0].filePath.contains("Sources/a.swift"))
+        }
+    }
+
+    @Test("excluded_paths relative to config directory, not CLI path")
+    func excludedRelativeToConfigDir() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Sources"), withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Tests"), withIntermediateDirectories: true)
+
+            try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
+            try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
+
+            // excluded_paths is relative to config rootDirectory (project root), not CLI path
+            let config = Configuration(excludedPaths: ["Tests/**"], rootDirectory: root)
+            let rules = RuleSet {
+                Rule(id: "all", severity: .warning) { file, ctx in
+                    ctx.report(on: file, message: "found")
+                }
+            }
+            let linter = LintEngine(rules: rules, config: config)
+            let result = await linter.lint(paths: [root])
+            #expect(result.diagnostics.count == 1)
+            #expect(result.diagnostics[0].filePath.contains("Sources"))
+        }
+    }
+
+    @Test("config rootDirectory resolves globs correctly even when CLI path differs")
+    func configRootDirGlobResolution() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Sources"), withIntermediateDirectories: true)
+
+            try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
+
+            // Config says "Sources/**" relative to rootDirectory (project root)
+            // Even if CLI passes ./Sources, the glob should still match
+            let config = Configuration(includedPaths: ["Sources/**"], rootDirectory: root)
+            let rules = RuleSet {
+                Rule(id: "all", severity: .warning) { file, ctx in
+                    ctx.report(on: file, message: "found")
+                }
+            }
+            let linter = LintEngine(rules: rules, config: config)
+            // This was the original bug: passing ./Sources with included_paths: Sources/** didn't match
+            let result = await linter.lint(paths: ["\(root)/Sources"])
+            #expect(result.diagnostics.count == 1)
+        }
+    }
+
+    @Test("empty included_paths uses CLI paths (backward compat)")
+    func emptyIncludedUsesCLIPaths() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Sources"), withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Tests"), withIntermediateDirectories: true)
+
+            try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
+            try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
+
+            // No included_paths — CLI paths should be used as scan roots
+            let config = Configuration(excludedPaths: [], rootDirectory: root)
+            let rules = RuleSet {
+                Rule(id: "all", severity: .warning) { file, ctx in
+                    ctx.report(on: file, message: "found")
+                }
+            }
+            let linter = LintEngine(rules: rules, config: config)
+            let result = await linter.lint(paths: ["\(root)/Sources"])
+            #expect(result.diagnostics.count == 1)
+            #expect(result.diagnostics[0].filePath.contains("Sources"))
         }
     }
 }
