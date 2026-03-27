@@ -23,6 +23,15 @@ public struct Scaffold {
         // 1. swift package init --type empty
         try await runSwift(packagePath: resolvedPath, arguments: ["init", "--type", "empty", "--name", name])
 
+        // 1.5. Add platforms (no CLI for this, so patch Package.swift directly)
+        let packageSwiftPath = "\(resolvedPath)/Package.swift"
+        let packageContent = try String(contentsOfFile: packageSwiftPath, encoding: .utf8)
+        let patched = packageContent.replacingOccurrences(
+            of: "name: \"\(name)\",",
+            with: "name: \"\(name)\",\n    platforms: [.macOS(.v15)],",
+        )
+        try writeFile(content: patched, atPath: packageSwiftPath)
+
         // 2. Add dependencies
         try await runSwift(packagePath: resolvedPath, arguments: [
             "add-dependency",

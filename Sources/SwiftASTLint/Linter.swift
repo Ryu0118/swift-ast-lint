@@ -10,6 +10,7 @@ public struct LintResult: Sendable {
     }
 }
 
+@available(macOS 10.15, macCatalyst 13, iOS 13, tvOS 13, watchOS 6, *)
 public struct Linter: AsyncParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "swift-ast-lint",
@@ -24,19 +25,29 @@ public struct Linter: AsyncParsableCommand {
 
     private static let storedRules = Mutex<RuleSet?>(nil)
 
-    public static func lint(_ rules: RuleSet) {
+    public static func lint(_ rules: RuleSet) async {
         LoggingSystem.bootstrap { label in
             var handler = StreamLogHandler.standardError(label: label)
             handler.logLevel = .info
             return handler
         }
         storedRules.withLock { $0 = rules }
-        main()
+        do {
+            var command = try parseAsRoot()
+            if var asyncCommand = command as? AsyncParsableCommand {
+                try await asyncCommand.run()
+            } else {
+                try command.run()
+            }
+        } catch {
+            exit(withError: error)
+        }
     }
 
     public init() {}
 
     public func run() async throws {
+        Swift.print("DEBUG run() paths=\(paths) ruleCount=\(Self.storedRules.withLock { $0?.rules.count ?? -1 })") // swiftlint:disable:this no_raw_print
         guard let rules = Self.storedRules.withLock({ $0 }) else {
             logger.error("No rules registered")
             throw ExitCode(1)

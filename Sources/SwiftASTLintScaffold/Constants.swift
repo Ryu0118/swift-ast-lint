@@ -34,7 +34,7 @@ enum Constants {
         import SwiftASTLint
         import Rules
 
-        Linter.lint(rules)
+        await Linter.lint(rules)
         """
 
     static let rulesSwift =

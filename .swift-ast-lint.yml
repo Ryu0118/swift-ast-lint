@@ -1,0 +1,4 @@
+included_paths:
+  - "Sources/**/*.swift"
+excluded_paths:
+  - ".build/**"

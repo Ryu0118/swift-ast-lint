@@ -1,7 +1,7 @@
 SWIFTFORMAT := .nest/bin/swiftformat
 SWIFTLINT := .nest/bin/swiftlint
 
-.PHONY: install-commands format lint format-lint hooks test check build release
+.PHONY: install-commands format lint ast-lint format-lint hooks test check build release
 
 install-commands:
 	./scripts/nest.sh bootstrap nestfile.yaml
@@ -13,6 +13,9 @@ format:
 lint:
 	@test -f "$(SWIFTLINT)" || (echo "Run: make install-commands" && exit 1)
 	"$(SWIFTLINT)" lint --config .swiftlint.yml --strict
+
+ast-lint:
+	swift run --package-path swift-ast-linter swift-ast-lint ./Sources
 
 format-lint: format lint
 
@@ -28,4 +31,4 @@ build:
 release:
 	swift build -c release
 
-check: format lint test
+check: format lint ast-lint test
