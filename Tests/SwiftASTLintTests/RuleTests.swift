@@ -2,24 +2,11 @@
 import SwiftSyntax
 import Testing
 
-@Suite("Rule construction: id, severity, include/exclude glob patterns with sensible defaults")
+@Suite("Rule construction: id with trailing closure check body")
 struct RuleTests {
-    @Test("default include and exclude are empty")
+    @Test("rule stores id and accepts check closure")
     func defaults() {
-        let rule = Rule(id: "test", severity: .warning) { _, _ in }
-        #expect(rule.include.isEmpty)
-        #expect(rule.exclude.isEmpty)
-    }
-
-    @Test("custom include and exclude")
-    func customPatterns() {
-        let rule = Rule(
-            id: "test",
-            severity: .error,
-            include: ["Sources/**"],
-            exclude: ["**/*Generated.swift"],
-        ) { _, _ in }
-        #expect(rule.include == ["Sources/**"])
-        #expect(rule.exclude == ["**/*Generated.swift"])
+        let rule = Rule(id: "test") { _, _ in }
+        #expect(rule.id == "test")
     }
 }

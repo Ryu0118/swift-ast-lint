@@ -7,7 +7,6 @@ func makeLintContext(
     source: String,
     filePath: String = "test.swift",
     ruleID: String = "test",
-    defaultSeverity: Severity = .error,
 ) -> (SourceFileSyntax, LintContext) {
     let parsed = Parser.parse(source: source)
     let converter = SourceLocationConverter(fileName: filePath, tree: parsed)
@@ -15,7 +14,6 @@ func makeLintContext(
         filePath: filePath,
         sourceLocationConverter: converter,
         ruleID: ruleID,
-        defaultSeverity: defaultSeverity,
     )
     return (parsed, context)
 }

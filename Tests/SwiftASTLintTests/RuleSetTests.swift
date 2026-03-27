@@ -7,8 +7,8 @@ struct RuleSetTests {
     @Test("builder creates rule set with rules")
     func builder() {
         let ruleSet = RuleSet {
-            Rule(id: "a", severity: .warning) { _, _ in }
-            Rule(id: "b", severity: .error) { _, _ in }
+            Rule(id: "a") { _, _ in }
+            Rule(id: "b") { _, _ in }
         }
         #expect(ruleSet.rules.count == 2)
         #expect(ruleSet.rules[0].id == "a")
@@ -18,7 +18,7 @@ struct RuleSetTests {
     @Test("default global include/exclude are empty")
     func defaults() {
         let ruleSet = RuleSet {
-            Rule(id: "a", severity: .warning) { _, _ in }
+            Rule(id: "a") { _, _ in }
         }
         #expect(ruleSet.globalInclude.isEmpty)
         #expect(ruleSet.globalExclude.isEmpty)
@@ -27,7 +27,7 @@ struct RuleSetTests {
     @Test("include returns new RuleSet with patterns")
     func includeChain() {
         let ruleSet = RuleSet {
-            Rule(id: "a", severity: .warning) { _, _ in }
+            Rule(id: "a") { _, _ in }
         }.include(["Sources/**"])
         #expect(ruleSet.globalInclude == ["Sources/**"])
         #expect(ruleSet.globalExclude.isEmpty)
@@ -36,7 +36,7 @@ struct RuleSetTests {
     @Test("exclude returns new RuleSet with patterns")
     func excludeChain() {
         let ruleSet = RuleSet {
-            Rule(id: "a", severity: .warning) { _, _ in }
+            Rule(id: "a") { _, _ in }
         }.exclude(["Tests/**"])
         #expect(ruleSet.globalExclude == ["Tests/**"])
     }
@@ -44,7 +44,7 @@ struct RuleSetTests {
     @Test("chaining include and exclude")
     func chain() {
         let ruleSet = RuleSet {
-            Rule(id: "a", severity: .warning) { _, _ in }
+            Rule(id: "a") { _, _ in }
         }
         .include(["Sources/**"])
         .exclude(["**/*Generated.swift"])
@@ -64,7 +64,7 @@ struct RuleSetTests {
         let includeRule = true
         let ruleSet = RuleSet {
             if includeRule {
-                Rule(id: "conditional", severity: .warning) { _, _ in }
+                Rule(id: "conditional") { _, _ in }
             }
         }
         #expect(ruleSet.rules.count == 1)
@@ -75,7 +75,7 @@ struct RuleSetTests {
         let includeRule = false
         let ruleSet = RuleSet {
             if includeRule {
-                Rule(id: "conditional", severity: .warning) { _, _ in }
+                Rule(id: "conditional") { _, _ in }
             }
         }
         #expect(ruleSet.rules.isEmpty)
@@ -86,9 +86,9 @@ struct RuleSetTests {
         let useFirst = true
         let ruleSet = RuleSet {
             if useFirst {
-                Rule(id: "first", severity: .warning) { _, _ in }
+                Rule(id: "first") { _, _ in }
             } else {
-                Rule(id: "second", severity: .error) { _, _ in }
+                Rule(id: "second") { _, _ in }
             }
         }
         #expect(ruleSet.rules.count == 1)
@@ -100,7 +100,7 @@ struct RuleSetTests {
         let ids = ["rule-1", "rule-2", "rule-3"]
         let ruleSet = RuleSet {
             for ruleID in ids {
-                Rule(id: ruleID, severity: .warning) { _, _ in }
+                Rule(id: ruleID) { _, _ in }
             }
         }
         #expect(ruleSet.rules.count == 3)
