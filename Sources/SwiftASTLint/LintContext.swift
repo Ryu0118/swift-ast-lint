@@ -1,8 +1,11 @@
 import SwiftSyntax
 
+/// Accumulates diagnostics reported by a single rule against a single file.
 @LintActor
 public final class LintContext {
+    /// Absolute path of the file being linted.
     public nonisolated let filePath: String
+    /// Converter for mapping AST positions to line/column locations.
     public nonisolated let sourceLocationConverter: SourceLocationConverter
 
     private let ruleID: String
@@ -21,10 +24,12 @@ public final class LintContext {
         self.defaultSeverity = defaultSeverity
     }
 
+    /// Reports a diagnostic at `node` with the rule's default severity.
     public func report(on node: some SyntaxProtocol, message: String) {
         report(on: node, message: message, severity: defaultSeverity)
     }
 
+    /// Reports a diagnostic at `node` with an explicit severity.
     public func report(on node: some SyntaxProtocol, message: String, severity: Severity) {
         let location = sourceLocationConverter.location(for: node.positionAfterSkippingLeadingTrivia)
         let diagnostic = Diagnostic(

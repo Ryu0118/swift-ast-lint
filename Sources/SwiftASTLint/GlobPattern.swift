@@ -1,11 +1,14 @@
 import Foundation
 
+/// Glob pattern matching for file path filtering (supports `*`, `**`, `?`).
 public enum GlobPattern {
+    /// Returns `true` if `path` matches the given glob `pattern`.
     public static func matches(pattern: String, path: String) -> Bool {
         let regex = convertToRegex(pattern)
         return path.range(of: regex, options: .regularExpression) != nil
     }
 
+    /// Returns `true` if `path` matches any of the given glob `patterns`.
     public static func matchesAny(patterns: [String], path: String) -> Bool {
         patterns.contains { matches(pattern: $0, path: path) }
     }
