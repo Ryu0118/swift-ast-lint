@@ -12,7 +12,6 @@ public struct ConfigurationLoader {
     }
 
     /// Loads configuration from `path`. Returns `nil` if the file does not exist.
-    /// The returned ``Configuration/rootDirectory`` is set to the parent directory of `path`.
     public func load(from path: String) throws -> Configuration? {
         guard fileManager.fileExists(atPath: path) else {
             return nil
@@ -23,11 +22,40 @@ public struct ConfigurationLoader {
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return Configuration(rootDirectory: rootDir)
         }
-        let decoded = try YAMLDecoder().decode(Configuration.self, from: content)
+        guard let yaml = try Yams.load(yaml: content) as? [String: Any] else {
+            return Configuration(rootDirectory: rootDir)
+        }
+
+        let includedPaths = (yaml["included_paths"] as? [String]) ?? []
+        let excludedPaths = (yaml["excluded_paths"] as? [String]) ?? []
+        let ruleConfigs = try parseRules(from: yaml)
+
         return Configuration(
-            includedPaths: decoded.includedPaths,
-            excludedPaths: decoded.excludedPaths,
+            includedPaths: includedPaths,
+            excludedPaths: excludedPaths,
             rootDirectory: rootDir,
+            rules: ruleConfigs,
         )
+    }
+
+    private func parseRules(from yaml: [String: Any]) throws -> [String: RuleConfiguration] {
+        guard let rulesDict = yaml["rules"] as? [String: Any] else { return [:] }
+        var result: [String: RuleConfiguration] = [:]
+        for (ruleID, value) in rulesDict {
+            guard let ruleDict = value as? [String: Any] else { continue }
+            result[ruleID] = try parseRuleConfig(from: ruleDict)
+        }
+        return result
+    }
+
+    private func parseRuleConfig(from dict: [String: Any]) throws -> RuleConfiguration {
+        let include = (dict["include"] as? [String]) ?? []
+        let exclude = (dict["exclude"] as? [String]) ?? []
+        let argsYAML: String? = if let args = dict["args"] {
+            try Yams.dump(object: args)
+        } else {
+            nil
+        }
+        return RuleConfiguration(include: include, exclude: exclude, argsYAML: argsYAML)
     }
 }

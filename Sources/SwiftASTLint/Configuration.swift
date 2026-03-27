@@ -1,33 +1,41 @@
 /// Parsed representation of a `.swift-ast-lint.yml` configuration file.
-public struct Configuration: Sendable, Equatable, Decodable {
+public struct Configuration: Sendable, Equatable {
     /// Glob patterns for files to include in linting.
     public let includedPaths: [String]
     /// Glob patterns for files to exclude from linting.
     public let excludedPaths: [String]
     /// Absolute path to the directory containing the config file.
-    /// All glob patterns are resolved relative to this directory (SwiftLint-compatible).
     public let rootDirectory: String
+    /// Per-rule configuration overrides keyed by rule ID.
+    public let rules: [String: RuleConfiguration]
 
-    /// Creates a configuration with the given include/exclude patterns.
+    /// Creates a configuration with the given parameters.
     public init(
         includedPaths: [String] = [],
         excludedPaths: [String] = [],
         rootDirectory: String = ".",
+        rules: [String: RuleConfiguration] = [:],
     ) {
         self.includedPaths = includedPaths
         self.excludedPaths = excludedPaths
         self.rootDirectory = rootDirectory
+        self.rules = rules
     }
+}
 
-    private enum CodingKeys: String, CodingKey {
-        case includedPaths = "included_paths"
-        case excludedPaths = "excluded_paths"
-    }
+/// Per-rule configuration from YAML.
+public struct RuleConfiguration: Sendable, Equatable {
+    /// Glob patterns to restrict which files this rule applies to.
+    public let include: [String]
+    /// Glob patterns to exclude files from this rule.
+    public let exclude: [String]
+    /// Raw YAML string for the args section. Decoded lazily at rule execution time.
+    public let argsYAML: String?
 
-    public init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        includedPaths = try container.decodeIfPresent([String].self, forKey: .includedPaths) ?? []
-        excludedPaths = try container.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
-        rootDirectory = "."
+    /// Creates a rule configuration.
+    public init(include: [String] = [], exclude: [String] = [], argsYAML: String? = nil) {
+        self.include = include
+        self.exclude = exclude
+        self.argsYAML = argsYAML
     }
 }

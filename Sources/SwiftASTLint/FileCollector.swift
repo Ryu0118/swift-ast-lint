@@ -41,13 +41,13 @@ enum FileCollector {
         return filtered
     }
 
-    static func ruleApplies(_ rule: Rule, to relativePath: String) -> Bool {
-        if !rule.include.isEmpty {
-            guard GlobPattern.matchesAny(patterns: rule.include, path: relativePath) else {
+    static func ruleApplies(include: [String], exclude: [String], to relativePath: String) -> Bool {
+        if !include.isEmpty {
+            guard GlobPattern.matchesAny(patterns: include, path: relativePath) else {
                 return false
             }
         }
-        if GlobPattern.matchesAny(patterns: rule.exclude, path: relativePath) {
+        if GlobPattern.matchesAny(patterns: exclude, path: relativePath) {
             return false
         }
         return true

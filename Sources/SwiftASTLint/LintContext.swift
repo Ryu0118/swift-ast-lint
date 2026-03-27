@@ -9,27 +9,19 @@ public final class LintContext {
     public nonisolated let sourceLocationConverter: SourceLocationConverter
 
     private let ruleID: String
-    private let defaultSeverity: Severity
     private var diagnostics: [Diagnostic] = []
 
     init(
         filePath: String,
         sourceLocationConverter: SourceLocationConverter,
         ruleID: String,
-        defaultSeverity: Severity,
     ) {
         self.filePath = filePath
         self.sourceLocationConverter = sourceLocationConverter
         self.ruleID = ruleID
-        self.defaultSeverity = defaultSeverity
     }
 
-    /// Reports a diagnostic at `node` with the rule's default severity.
-    public func report(on node: some SyntaxProtocol, message: String) {
-        report(on: node, message: message, severity: defaultSeverity)
-    }
-
-    /// Reports a diagnostic at `node` with an explicit severity.
+    /// Reports a diagnostic at `node` with the given severity.
     public func report(on node: some SyntaxProtocol, message: String, severity: Severity) {
         let location = sourceLocationConverter.location(for: node.positionAfterSkippingLeadingTrivia)
         let diagnostic = Diagnostic(
