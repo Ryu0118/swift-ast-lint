@@ -15,7 +15,7 @@ struct RuleExampleTests {
     // MARK: - single-large-public-type-per-file
 
     private func largePubTypeRule(minBodyLines: Int = 50) -> Rule {
-        Rule(id: "single-large-public-type-per-file", severity: .error) { file, context in
+        Rule(id: "single-large-public-type-per-file") { file, context in
             let topLevelDecls = file.statements.compactMap { stmt -> (any DeclGroupSyntax)? in
                 if let cls = stmt.item.as(ClassDeclSyntax.self) { return cls }
                 if let str = stmt.item.as(StructDeclSyntax.self) { return str }
@@ -35,7 +35,7 @@ struct RuleExampleTests {
             }
             guard large.count > 1 else { return }
             for decl in large {
-                context.report(on: decl, message: "too many large public types")
+                context.report(on: decl, message: "too many large public types", severity: .error)
             }
         }
     }
@@ -45,7 +45,7 @@ struct RuleExampleTests {
     func singleLargeType() {
         let source = "public struct A {\n" + String(repeating: "    var x = 1\n", count: 60) + "}\n"
         let (file, ctx) = makeLintContext(source: source)
-        largePubTypeRule().check(file, ctx)
+        largePubTypeRule().check(file, ctx, EmptyArguments())
         #expect(ctx.collectDiagnostics().isEmpty)
     }
 
@@ -55,7 +55,7 @@ struct RuleExampleTests {
         let typeA = "public struct A {\n" + String(repeating: "    var x = 1\n", count: 60) + "}\n"
         let typeB = "public class B {\n" + String(repeating: "    var y = 2\n", count: 60) + "}\n"
         let (file, ctx) = makeLintContext(source: typeA + typeB)
-        largePubTypeRule().check(file, ctx)
+        largePubTypeRule().check(file, ctx, EmptyArguments())
         #expect(ctx.collectDiagnostics().count == 2)
     }
 
@@ -79,7 +79,7 @@ struct RuleExampleTests {
         }
         """
         let (file, ctx) = makeLintContext(source: source)
-        largePubTypeRule(minBodyLines: 4).check(file, ctx)
+        largePubTypeRule(minBodyLines: 4).check(file, ctx, EmptyArguments())
         let diagnostics = ctx.collectDiagnostics()
         #expect(diagnostics.count == 2)
         #expect(diagnostics[0].severity == .error)
@@ -103,7 +103,7 @@ struct RuleExampleTests {
         }
         """
         let (file, ctx) = makeLintContext(source: source)
-        largePubTypeRule(minBodyLines: 4).check(file, ctx)
+        largePubTypeRule(minBodyLines: 4).check(file, ctx, EmptyArguments())
         #expect(ctx.collectDiagnostics().isEmpty)
     }
 
@@ -126,7 +126,7 @@ struct RuleExampleTests {
         }
         """
         let (file, ctx) = makeLintContext(source: source)
-        largePubTypeRule(minBodyLines: 4).check(file, ctx)
+        largePubTypeRule(minBodyLines: 4).check(file, ctx, EmptyArguments())
         #expect(ctx.collectDiagnostics().count == 2)
     }
 
@@ -149,14 +149,14 @@ struct RuleExampleTests {
         }
         """
         let (file, ctx) = makeLintContext(source: source)
-        largePubTypeRule(minBodyLines: 4).check(file, ctx)
+        largePubTypeRule(minBodyLines: 4).check(file, ctx, EmptyArguments())
         #expect(ctx.collectDiagnostics().isEmpty)
     }
 
     // MARK: - max-nesting-depth
 
     private func nestingRule() -> Rule {
-        Rule(id: "max-nesting-depth", severity: .error) { file, context in
+        Rule(id: "max-nesting-depth") { file, context in
             final class NestingVisitor: SyntaxVisitor {
                 var violations: [(Syntax, Int)] = []
                 var depth = 0
@@ -194,7 +194,7 @@ struct RuleExampleTests {
             let visitor = NestingVisitor()
             visitor.walk(file)
             for (node, depth) in visitor.violations {
-                context.report(on: node, message: "nesting too deep: \(depth)")
+                context.report(on: node, message: "nesting too deep: \(depth)", severity: .error)
             }
         }
     }
@@ -204,7 +204,7 @@ struct RuleExampleTests {
     func nestingOk() {
         let source = "func f() {\n    if true {\n        for _ in [1] {\n            if true { let _ = 1 }\n        }\n    }\n}"
         let (file, ctx) = makeLintContext(source: source)
-        nestingRule().check(file, ctx)
+        nestingRule().check(file, ctx, EmptyArguments())
         #expect(ctx.collectDiagnostics().isEmpty)
     }
 
@@ -213,7 +213,7 @@ struct RuleExampleTests {
     func nestingViolation() {
         let source = "func f() {\n    if true {\n        for _ in [1] {\n            if true {\n                for _ in [1] { let _ = 1 }\n            }\n        }\n    }\n}"
         let (file, ctx) = makeLintContext(source: source)
-        nestingRule().check(file, ctx)
+        nestingRule().check(file, ctx, EmptyArguments())
         #expect(ctx.collectDiagnostics().count >= 1)
     }
 }
