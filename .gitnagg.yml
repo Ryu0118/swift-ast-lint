@@ -10,7 +10,7 @@ rules:
         - metric: added
           gte: 200
         - metric: files
-          gte: 4
+          gte: 6
 
   - severity: warning
     message: Good checkpoint. Commit before the diff gets harder to reason about.

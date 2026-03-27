@@ -60,7 +60,7 @@ public struct Scaffold {
         try writeSourceFiles(at: resolvedPath)
 
         // 6. Write config
-        try writeFile(content: Constants.ymlTemplate, atPath: "\(resolvedPath)/.swift-ast-lint.yml")
+        try writeFile(content: Constants.ymlTemplate, atPath: "\(resolvedPath)/\(Constants.configFileName)")
     }
 
     // MARK: - Private

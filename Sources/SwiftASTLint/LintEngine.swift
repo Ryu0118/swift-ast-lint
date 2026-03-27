@@ -64,7 +64,7 @@ package struct LintEngine {
             await lintSingleFile(filePath: filePath, rootPath: rootPath)
         }
 
-        return LintResult(diagnostics: fileDiagnostics.flatMap(\.self).sorted())
+        return LintResult(diagnostics: Array(fileDiagnostics.joined()).sorted())
     }
 
     @LintActor

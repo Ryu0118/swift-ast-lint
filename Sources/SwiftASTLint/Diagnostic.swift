@@ -7,8 +7,7 @@ public struct Diagnostic: Sendable, Equatable, Comparable {
     public let column: Int
 
     public var formatted: String {
-        let severityStr = severity == .error ? "error" : "warning"
-        return "\(filePath):\(line):\(column): \(severityStr): [\(ruleID)] \(message)"
+        "\(filePath):\(line):\(column): \(severity.rawValue): [\(ruleID)] \(message)"
     }
 
     public static func < (lhs: Diagnostic, rhs: Diagnostic) -> Bool {

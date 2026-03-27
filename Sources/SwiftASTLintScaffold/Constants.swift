@@ -23,6 +23,10 @@ enum Constants {
     static let swiftASTLintProduct = "SwiftASTLint"
     static let swiftSyntaxProduct = "SwiftSyntax"
 
+    // MARK: - Config
+
+    static let configFileName = ".swift-ast-lint.yml"
+
     // MARK: - Templates
 
     static let mainSwift =
