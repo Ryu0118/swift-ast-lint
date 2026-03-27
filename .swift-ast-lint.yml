@@ -2,3 +2,8 @@ included_paths:
   - "Sources/**/*.swift"
 excluded_paths:
   - ".build/**"
+rules:
+  single-large-type-per-file:
+    args:
+      warning_lines: 50
+      error_lines: 100
