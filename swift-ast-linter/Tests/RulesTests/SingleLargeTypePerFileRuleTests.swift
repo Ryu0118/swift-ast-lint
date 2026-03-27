@@ -1,5 +1,6 @@
 @testable import Rules
 import SwiftASTLint
+import SwiftASTLintTestSupport
 import Testing
 
 // swiftlint:disable line_length

@@ -24,8 +24,7 @@ let package = Package(
             dependencies: [
                 "Rules",
                 .product(name: "SwiftASTLint", package: "swift-ast-lint"),
-                .product(name: "SwiftSyntax", package: "swift-syntax"),
-                .product(name: "SwiftParser", package: "swift-syntax"),
+                .product(name: "SwiftASTLintTestSupport", package: "swift-ast-lint"),
             ],
         ),
     ],

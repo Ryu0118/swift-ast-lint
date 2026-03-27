@@ -2,8 +2,9 @@
 name: rule-creator
 description: >
   Create, scaffold, and add SwiftASTLint lint rules to a user's linter project.
-  Covers Rule API usage, SwiftSyntax patterns for AST traversal, SyntaxVisitor
-  patterns, include/exclude glob filtering, and RuleSet composition.
+  Covers Rule/ParameterizedRule API, SwiftSyntax patterns for AST traversal,
+  SyntaxVisitor patterns, RuleSet composition, YAML args configuration,
+  and unit testing with SwiftASTLintTestSupport.
   Use when: user asks to "add a lint rule", "create a rule", "write a rule",
   mentions "SwiftASTLint rule", "lint rule", "AST rule", wants to check code
   patterns via SwiftSyntax, or needs help writing Rule closures.
@@ -16,40 +17,77 @@ Create lint rules that run directly against SwiftSyntax AST. No yml abstraction 
 
 ## Rule API
 
+### Rule (no arguments)
+
 ```swift
 import SwiftASTLint
 import SwiftSyntax
 
-Rule(
-    id: "rule-id",              // Unique kebab-case identifier
-    severity: .warning,          // .warning or .error
-    include: ["Sources/**"],     // Optional glob patterns (empty = all files)
-    exclude: ["**/*Generated.swift"],
-    check: { file, context in    // @Sendable @LintActor closure
-        // file: SourceFileSyntax — parsed AST of one Swift file
-        // context: LintContext — report violations here
-        // context.sourceLocationConverter — get line/column from AST nodes
-        // context.filePath — absolute path of the file being linted
+Rule(id: "rule-id") { file, context in
+    // file: SourceFileSyntax — parsed AST of one Swift file
+    // context: LintContext — report violations here
+    // context.sourceLocationConverter — get line/column from AST nodes
+    // context.filePath — absolute path of the file being linted
 
-        context.report(on: someNode, message: "Description of violation")
-        context.report(on: someNode, message: "Custom severity", severity: .error)
-    }
-)
+    context.report(on: someNode, message: "Description", severity: .warning)
+    context.report(on: someNode, message: "Critical issue", severity: .error)
+}
 ```
+
+### ParameterizedRule (with YAML-configurable arguments)
+
+```swift
+struct MyArgs: Codable, Sendable {
+    var threshold: Int = 50      // default value — required
+    var maxCount: Int = 3
+
+    enum CodingKeys: String, CodingKey {
+        case threshold
+        case maxCount = "max_count"  // snake_case for YAML
+    }
+}
+
+ParameterizedRule(
+    id: "my-rule",
+    defaultArguments: MyArgs(),
+) { file, context, args in
+    // args is MyArgs — type-safe, defaults from init, overridable via YAML
+    if someCondition(args.threshold) {
+        context.report(on: node, message: "...", severity: .warning)
+    }
+}
+```
+
+YAML override (`.swift-ast-lint.yml`):
+
+```yaml
+rules:
+  my-rule:
+    args:
+      threshold: 30
+      max_count: 5
+    include:
+      - "Sources/**"
+    exclude:
+      - "**/*Generated.swift"
+```
+
+**Key points:**
+- `severity` is always specified in the closure via `context.report(severity:)`. No default severity on Rule.
+- `include`/`exclude` are configured in YAML, not in Rule code.
+- Args must have default values via `init()`. Rules work without YAML config.
 
 ## Two Patterns for Rules
 
 ### Pattern 1: Direct AST traversal (simple rules)
 
-Iterate `file.statements` or use SwiftSyntax query APIs directly.
-
 ```swift
-Rule(id: "no-force-try", severity: .error) { file, context in
+Rule(id: "no-force-try") { file, context in
     for token in file.tokens(viewMode: .sourceAccurate) {
         if token.tokenKind == .keyword(.try),
            token.nextToken(viewMode: .sourceAccurate)?.tokenKind == .exclamationMark
         {
-            context.report(on: token, message: "Force try (try!) is not allowed")
+            context.report(on: token, message: "Force try (try!) is not allowed", severity: .error)
         }
     }
 }
@@ -57,10 +95,8 @@ Rule(id: "no-force-try", severity: .error) { file, context in
 
 ### Pattern 2: SyntaxVisitor (complex rules)
 
-Define a visitor class inside the closure. Collect violations synchronously, then report.
-
 ```swift
-Rule(id: "max-function-length", severity: .warning) { file, context in
+Rule(id: "max-function-length") { file, context in
     final class Visitor: SyntaxVisitor {
         var violations: [(Syntax, Int)] = []
         let maxLines = 50
@@ -74,9 +110,8 @@ Rule(id: "max-function-length", severity: .warning) { file, context in
         override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
             let startLine = converter.location(for: node.positionAfterSkippingLeadingTrivia).line
             let endLine = converter.location(for: node.endPositionBeforeTrailingTrivia).line
-            let lineCount = endLine - startLine + 1
-            if lineCount > maxLines {
-                violations.append((Syntax(node), lineCount))
+            if endLine - startLine + 1 > maxLines {
+                violations.append((Syntax(node), endLine - startLine + 1))
             }
             return .visitChildren
         }
@@ -84,31 +119,25 @@ Rule(id: "max-function-length", severity: .warning) { file, context in
     let visitor = Visitor(converter: context.sourceLocationConverter)
     visitor.walk(file)
     for (node, lines) in visitor.violations {
-        context.report(on: node, message: "Function is \(lines) lines (max \(visitor.maxLines))")
+        context.report(on: node, message: "Function is \(lines) lines", severity: .warning)
     }
 }
 ```
 
-**Important**: The Rule closure runs on `@LintActor`. `context.report()` is synchronous — no `await` needed. SyntaxVisitor is also synchronous. Collect violations in the visitor, then report after `walk()`.
+**Important**: The Rule closure runs on `@LintActor`. `context.report()` is synchronous — no `await` needed.
 
 ## Composing Rules into a RuleSet
 
 ```swift
 public let rules = RuleSet {
-    noForceTryRule()
-    maxFunctionLengthRule()
+    myParameterizedRule      // ParameterizedRule<MyArgs>
+    Rule(id: "simple") { file, ctx in ... }
 }
-.include(["Sources/**"])
-.exclude(["**/*Generated.swift", "**/*Mock.swift"])
+.include(["Sources/**"])     // global include (RuleSet level)
+.exclude(["**/*Generated.swift"])
 ```
 
 ## Common SwiftSyntax Patterns
-
-### Check access level
-
-```swift
-let isPublic = decl.modifiers.contains { $0.name.tokenKind == .keyword(.public) }
-```
 
 ### Get line count of a declaration body
 
@@ -131,33 +160,72 @@ let types = file.statements.compactMap { stmt -> (any DeclGroupSyntax)? in
 }
 ```
 
-## Workflow: Adding a Rule
-
-1. Create a new function in `Sources/Rules/` returning `Rule`
-2. Add the function call to the `RuleSet` in `Rules.swift`
-3. Write tests with `@LintActor` and `Parser.parse(source:)`
-4. `swift test` to verify
-5. `swift run swift-ast-lint ./path` to test against real code
-
-## Testing a Rule
+### Check access level
 
 ```swift
-@Test("detects violation")
-@LintActor
-func detectsViolation() {
-    let source = "let x: Int = try! something()"
-    let file = Parser.parse(source: source)
-    let converter = SourceLocationConverter(fileName: "test.swift", tree: file)
-    let context = LintContext(
-        filePath: "test.swift",
-        sourceLocationConverter: converter,
-        ruleID: "test",
-        defaultSeverity: .error
-    )
-    myRule().check(file, context)
-    #expect(context.collectDiagnostics().count == 1)
+let isPublic = decl.modifiers.contains { $0.name.tokenKind == .keyword(.public) }
+```
+
+## Workflow: Adding a Rule
+
+1. Create a new file in `Sources/Rules/` with the rule definition
+2. Add the rule to `RuleSet` in `Rules.swift`
+3. **Write unit tests** using `SwiftASTLintTestSupport` (see below)
+4. `swift test` to verify
+5. Optionally configure YAML args/include/exclude in `.swift-ast-lint.yml`
+6. `swift run swift-ast-lint ./path` to test against real code
+
+## Testing a Rule (SwiftASTLintTestSupport)
+
+Import `SwiftASTLintTestSupport` for the `rule.lint(source:)` helper and `ruleSet.find(id:)`.
+
+```swift
+@testable import Rules
+import SwiftASTLint
+import SwiftASTLintTestSupport
+import Testing
+
+@Suite("my-rule: description of what the rule checks")
+struct MyRuleTests {
+    @Test("detects the violation pattern")
+    func detectsViolation() async {
+        let diagnostics = await myRule.lint(source: "let x = try! foo()")
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].severity == .error)
+    }
+
+    @Test("allows the correct pattern")
+    func allowsCorrectPattern() async {
+        let diagnostics = await myRule.lint(source: "let x = try foo()")
+        #expect(diagnostics.isEmpty)
+    }
+
+    @Test("respects YAML args override")
+    func argsOverride() async {
+        let diagnostics = await myRule.lint(source: "...", argsYAML: "threshold: 10\n")
+        #expect(diagnostics.count == 1)
+    }
 }
 ```
+
+### Finding a rule from RuleSet
+
+```swift
+// In init — use #require to fail fast if rule not found
+init() throws {
+    rule = try #require(rules.find(id: "my-rule"))
+}
+```
+
+### Test checklist
+
+- [ ] Violation detected for the target pattern
+- [ ] No false positive for similar but valid patterns
+- [ ] Edge cases (empty file, nested types, associated values, etc.)
+- [ ] YAML args override works (for ParameterizedRule)
+- [ ] Severity is correct (warning vs error)
+- [ ] Message is descriptive and includes relevant values
+- [ ] Parameterized tests (`@Test(arguments:)`) for multiple type kinds or patterns
 
 ## CLI Usage
 

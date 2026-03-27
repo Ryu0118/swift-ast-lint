@@ -1,11 +1,15 @@
 @testable import Rules
 import SwiftASTLint
+import SwiftASTLintTestSupport
 import Testing
 
 @Suite("prefer-string-raw-value-enum: detects enums with redundant description")
 struct PreferStringRawValueEnumRuleTests {
-    // swiftlint:disable:next force_unwrapping
-    private let rule = rules.rules.first { $0.id == "prefer-string-raw-value-enum" }!
+    private let rule: any RuleProtocol
+
+    init() throws {
+        rule = try #require(rules.find(id: "prefer-string-raw-value-enum"))
+    }
 
     @Test("flags enum with description returning case names as strings")
     func redundantDescription() async {
@@ -34,8 +38,7 @@ struct PreferStringRawValueEnumRuleTests {
 
     @Test("skips enum without description property")
     func noDescription() async {
-        let source = "enum Direction {\ncase north\ncase south\n}"
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = await rule.lint(source: "enum Direction {\ncase north\ncase south\n}")
         #expect(diagnostics.isEmpty)
     }
 
@@ -53,15 +56,13 @@ struct PreferStringRawValueEnumRuleTests {
 
     @Test("skips enum with associated values")
     func associatedValues() async {
-        let source = "enum Result {\ncase success(Int)\ncase failure(String)\n}"
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = await rule.lint(source: "enum Result {\ncase success(Int)\ncase failure(String)\n}")
         #expect(diagnostics.isEmpty)
     }
 
     @Test("skips non-enum types")
     func nonEnumType() async {
-        let source = "struct Foo {\nvar description: String { \"foo\" }\n}"
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = await rule.lint(source: "struct Foo {\nvar description: String { \"foo\" }\n}")
         #expect(diagnostics.isEmpty)
     }
 }
