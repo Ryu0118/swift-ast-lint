@@ -21,17 +21,6 @@
           }
         ]
       }
-    ],
-    "PreToolUse:Bash": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cat | sh .claude/hooks/pre-commit-lint.sh"
-          }
-        ]
-      }
     ]
   }
 }

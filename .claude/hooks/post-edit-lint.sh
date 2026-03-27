@@ -1,26 +1,65 @@
 #!/bin/sh
 FILE_PATH=$(jq -r '.file_path // .tool_input.file_path // ""')
-echo "$FILE_PATH" | grep -q '\.swift$' || exit 0
-
 SRCROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 
-# Cursor may pass a repo-relative path; resolve against SRCROOT when needed.
-if [ ! -f "$FILE_PATH" ] && [ -f "$SRCROOT/$FILE_PATH" ]; then
-  FILE_PATH="$SRCROOT/$FILE_PATH"
-fi
-[ -f "$FILE_PATH" ] || exit 0
+HAS_ERROR=0
+ALL_REASONS=""
 
-if [ -x "$SRCROOT/.nest/bin/swiftlint" ]; then
-  SWIFTLINT="$SRCROOT/.nest/bin/swiftlint"
-else
-  SWIFTLINT=$(command -v swiftlint) || exit 0
-fi
-[ -f "$SRCROOT/.swiftlint.yml" ] || exit 0
+# Swift-specific: format + lint
+if echo "$FILE_PATH" | grep -q '\.swift$'; then
+  # Resolve relative path
+  if [ ! -f "$FILE_PATH" ] && [ -f "$SRCROOT/$FILE_PATH" ]; then
+    FILE_PATH="$SRCROOT/$FILE_PATH"
+  fi
 
-LINT_OUTPUT=$("$SWIFTLINT" lint --config "$SRCROOT/.swiftlint.yml" --strict --quiet "$FILE_PATH" 2>&1) || true
-if [ -n "$LINT_OUTPUT" ]; then
-  echo "$LINT_OUTPUT" >&2
-  REASON=$(printf '%s' "$LINT_OUTPUT" | jq -Rs .)
+  if [ -f "$FILE_PATH" ]; then
+    # 1. swiftformat
+    if [ -x "$SRCROOT/.nest/bin/swiftformat" ]; then
+      SWIFTFORMAT="$SRCROOT/.nest/bin/swiftformat"
+    elif command -v swiftformat >/dev/null 2>&1; then
+      SWIFTFORMAT=$(command -v swiftformat)
+    else
+      SWIFTFORMAT=""
+    fi
+    if [ -n "$SWIFTFORMAT" ] && [ -f "$SRCROOT/.swiftformat" ]; then
+      "$SWIFTFORMAT" --config "$SRCROOT/.swiftformat" "$FILE_PATH" 2>/dev/null || true
+    fi
+
+    # 2. swiftlint
+    if [ -x "$SRCROOT/.nest/bin/swiftlint" ]; then
+      SWIFTLINT="$SRCROOT/.nest/bin/swiftlint"
+    elif command -v swiftlint >/dev/null 2>&1; then
+      SWIFTLINT=$(command -v swiftlint)
+    else
+      SWIFTLINT=""
+    fi
+    if [ -n "$SWIFTLINT" ] && [ -f "$SRCROOT/.swiftlint.yml" ]; then
+      LINT_OUTPUT=$("$SWIFTLINT" lint --config "$SRCROOT/.swiftlint.yml" --strict --quiet "$FILE_PATH" 2>&1) || true
+      if [ -n "$LINT_OUTPUT" ]; then
+        echo "$LINT_OUTPUT" >&2
+        ALL_REASONS="${ALL_REASONS}${LINT_OUTPUT}\n"
+        HAS_ERROR=1
+      fi
+    fi
+  fi
+fi
+
+# 3. gitnagg (always, regardless of file type)
+if [ -x "$SRCROOT/.nest/bin/gitnagg" ] && [ -f "$SRCROOT/.gitnagg.yml" ]; then
+  set +e
+  NAGG_OUTPUT=$("$SRCROOT/.nest/bin/gitnagg" check --config "$SRCROOT/.gitnagg.yml" 2>&1)
+  NAGG_STATUS=$?
+  set -e
+  if [ "$NAGG_STATUS" -ne 0 ]; then
+    echo "$NAGG_OUTPUT" >&2
+    ALL_REASONS="${ALL_REASONS}${NAGG_OUTPUT}\n"
+    HAS_ERROR=1
+  fi
+fi
+
+# Block with all collected diagnostics
+if [ "$HAS_ERROR" -ne 0 ]; then
+  REASON=$(printf '%b' "$ALL_REASONS" | jq -Rs .)
   printf '{"decision":"block","reason":%s}\n' "$REASON"
   exit 2
 fi

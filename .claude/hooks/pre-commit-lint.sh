@@ -4,6 +4,19 @@ echo "$COMMAND" | grep -q '^git commit' || exit 0
 
 SRCROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 
+# gitnagg: nag if uncommitted diff is too large
+if [ -x "$SRCROOT/.nest/bin/gitnagg" ]; then
+  set +e
+  NAGG_OUTPUT=$("$SRCROOT/.nest/bin/gitnagg" check --config "$SRCROOT/.gitnagg.yml" 2>&1)
+  NAGG_STATUS=$?
+  set -e
+  if [ "$NAGG_STATUS" -ne 0 ]; then
+    REASON=$(printf '%s' "$NAGG_OUTPUT" | jq -Rs .)
+    printf '{"decision":"block","reason":%s}\n' "$REASON"
+    exit 2
+  fi
+fi
+
 if [ -x "$SRCROOT/.nest/bin/swiftformat" ]; then
   SWIFTFORMAT="$SRCROOT/.nest/bin/swiftformat"
 else
