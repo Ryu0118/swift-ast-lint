@@ -6,10 +6,12 @@ import SwiftSyntax
 package struct LintEngine {
     let rules: RuleSet
     let config: Configuration?
+    let fileCollector: FileCollector
 
-    package init(rules: RuleSet, config: Configuration? = nil) {
+    package init(rules: RuleSet, config: Configuration? = nil, fileCollector: FileCollector = FileCollector()) {
         self.rules = rules
         self.config = config
+        self.fileCollector = fileCollector
     }
 
     package func lintAndOutputDiagnostics(paths: [String]) async -> LintResult {
@@ -56,7 +58,7 @@ package struct LintEngine {
     private func lintFiles(scanRoot: String, filterBase: String) async -> LintResult {
         let allSwiftFiles: [String]
         do {
-            allSwiftFiles = try FileCollector.collectSwiftFiles(rootPath: scanRoot)
+            allSwiftFiles = try fileCollector.collectSwiftFiles(rootPath: scanRoot)
         } catch {
             logger.error("Failed to collect files at \(scanRoot): \(error)")
             return LintResult(diagnostics: [])
@@ -64,7 +66,7 @@ package struct LintEngine {
 
         let include = (config?.includedPaths ?? []) + rules.globalInclude
         let exclude = (config?.excludedPaths ?? []) + rules.globalExclude
-        let filtered = FileCollector.applyFilters(
+        let filtered = fileCollector.applyFilters(
             files: allSwiftFiles,
             include: include,
             exclude: exclude,

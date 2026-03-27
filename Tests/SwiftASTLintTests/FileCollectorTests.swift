@@ -10,6 +10,8 @@ import Testing
     """,
 )
 struct FileCollectorTests {
+    private let collector = FileCollector()
+
     // MARK: - collectSwiftFiles
 
     @Test("collects only .swift files, sorted alphabetically")
@@ -20,7 +22,7 @@ struct FileCollectorTests {
             try "".write(toFile: "\(root)/a.swift", atomically: true, encoding: .utf8)
             try "".write(toFile: "\(root)/c.txt", atomically: true, encoding: .utf8)
 
-            let files = try FileCollector.collectSwiftFiles(rootPath: root)
+            let files = try collector.collectSwiftFiles(rootPath: root)
             #expect(files.count == 2)
             #expect(files[0].hasSuffix("a.swift"))
             #expect(files[1].hasSuffix("b.swift"))
@@ -37,7 +39,7 @@ struct FileCollectorTests {
             )
             try "".write(toFile: "\(root)/Sources/Foo/Bar.swift", atomically: true, encoding: .utf8)
 
-            let files = try FileCollector.collectSwiftFiles(rootPath: root)
+            let files = try collector.collectSwiftFiles(rootPath: root)
             #expect(files.count == 1)
             #expect(files[0].contains("Sources/Foo/Bar.swift"))
         }
@@ -45,7 +47,7 @@ struct FileCollectorTests {
 
     @Test("returns empty for non-existent directory")
     func collectNonExistent() throws {
-        let files = try FileCollector.collectSwiftFiles(rootPath: "/nonexistent-path-12345")
+        let files = try collector.collectSwiftFiles(rootPath: "/nonexistent-path-12345")
         #expect(files.isEmpty)
     }
 
@@ -54,7 +56,7 @@ struct FileCollectorTests {
     @Test("include filters to matching files only")
     func applyIncludeFilter() {
         let files = ["/root/Sources/a.swift", "/root/Tests/b.swift"]
-        let filtered = FileCollector.applyFilters(
+        let filtered = collector.applyFilters(
             files: files,
             include: ["Sources/**"],
             exclude: [],
@@ -67,7 +69,7 @@ struct FileCollectorTests {
     @Test("exclude removes matching files")
     func applyExcludeFilter() {
         let files = ["/root/a.swift", "/root/Generated.swift"]
-        let filtered = FileCollector.applyFilters(
+        let filtered = collector.applyFilters(
             files: files,
             include: [],
             exclude: ["*Generated.swift"],
@@ -80,7 +82,7 @@ struct FileCollectorTests {
     @Test("empty include means no restriction")
     func emptyInclude() {
         let files = ["/root/a.swift", "/root/b.swift"]
-        let filtered = FileCollector.applyFilters(
+        let filtered = collector.applyFilters(
             files: files,
             include: [],
             exclude: [],
@@ -96,7 +98,7 @@ struct FileCollectorTests {
             "/root/Sources/Generated.swift",
             "/root/Tests/b.swift",
         ]
-        let filtered = FileCollector.applyFilters(
+        let filtered = collector.applyFilters(
             files: files,
             include: ["Sources/**"],
             exclude: ["**/*Generated.swift"],

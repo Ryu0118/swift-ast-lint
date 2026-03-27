@@ -1,8 +1,16 @@
+import FileManagerProtocol
 import Foundation
 
-enum FileCollector {
-    static func collectSwiftFiles(rootPath: String) throws -> [String] {
-        let fileManager = FileManager.default
+/// Collects and filters Swift files for linting.
+package struct FileCollector {
+    private let fileManager: any FileManagerProtocol
+
+    package init(fileManager: some FileManagerProtocol = FileManager.default) {
+        self.fileManager = fileManager
+    }
+
+    /// Recursively collects all `.swift` files under `rootPath`, sorted alphabetically.
+    package func collectSwiftFiles(rootPath: String) throws -> [String] {
         guard let enumerator = fileManager.enumerator(atPath: rootPath) else {
             return []
         }
@@ -15,7 +23,8 @@ enum FileCollector {
         return files.sorted()
     }
 
-    static func applyFilters(
+    /// Filters files by include/exclude glob patterns relative to `rootPath`.
+    package func applyFilters(
         files: [String],
         include: [String],
         exclude: [String],
@@ -26,7 +35,7 @@ enum FileCollector {
             filtered = filtered.filter { file in
                 GlobPattern.matchesAny(
                     patterns: include,
-                    path: makeRelative(file, to: rootPath),
+                    path: Self.makeRelative(file, to: rootPath),
                 )
             }
         }
@@ -34,14 +43,15 @@ enum FileCollector {
             filtered = filtered.filter { file in
                 !GlobPattern.matchesAny(
                     patterns: exclude,
-                    path: makeRelative(file, to: rootPath),
+                    path: Self.makeRelative(file, to: rootPath),
                 )
             }
         }
         return filtered
     }
 
-    static func ruleApplies(include: [String], exclude: [String], to relativePath: String) -> Bool {
+    /// Checks if a rule with given include/exclude patterns applies to a file.
+    package static func ruleApplies(include: [String], exclude: [String], to relativePath: String) -> Bool {
         if !include.isEmpty {
             guard GlobPattern.matchesAny(patterns: include, path: relativePath) else {
                 return false
@@ -53,7 +63,8 @@ enum FileCollector {
         return true
     }
 
-    static func makeRelative(_ path: String, to root: String) -> String {
+    /// Converts an absolute path to a relative path from `root`.
+    package static func makeRelative(_ path: String, to root: String) -> String {
         if path.hasPrefix(root + "/") {
             return String(path.dropFirst(root.count + 1))
         }
