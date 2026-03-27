@@ -12,15 +12,22 @@ public struct ConfigurationLoader {
     }
 
     /// Loads configuration from `path`. Returns `nil` if the file does not exist.
+    /// The returned ``Configuration/rootDirectory`` is set to the parent directory of `path`.
     public func load(from path: String) throws -> Configuration? {
         guard fileManager.fileExists(atPath: path) else {
             return nil
         }
+        let configURL = URL(filePath: path).standardized
+        let rootDir = configURL.deletingLastPathComponent().path(percentEncoded: false)
         let content = try String(contentsOfFile: path, encoding: .utf8)
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return Configuration()
+            return Configuration(rootDirectory: rootDir)
         }
-        let decoder = YAMLDecoder()
-        return try decoder.decode(Configuration.self, from: content)
+        let decoded = try YAMLDecoder().decode(Configuration.self, from: content)
+        return Configuration(
+            includedPaths: decoded.includedPaths,
+            excludedPaths: decoded.excludedPaths,
+            rootDirectory: rootDir,
+        )
     }
 }

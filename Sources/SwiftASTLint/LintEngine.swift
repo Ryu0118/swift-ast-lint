@@ -22,23 +22,43 @@ package struct LintEngine {
 
     package func lint(paths: [String]) async -> LintResult {
         var allDiagnostics: [Diagnostic] = []
-        for path in paths {
-            let resolvedPath = URL(filePath: path).standardized.path(percentEncoded: false)
-            let result = await lintFiles(rootPath: resolvedPath)
+
+        if let config, !config.includedPaths.isEmpty {
+            // SwiftLint behavior: included_paths overrides CLI paths.
+            // Scan from config's rootDirectory, filter relative to it.
+            let result = await lintFiles(
+                scanRoot: config.rootDirectory,
+                filterBase: config.rootDirectory,
+            )
             allDiagnostics.append(contentsOf: result.diagnostics)
+        } else if let config {
+            // Config exists but includedPaths empty: use CLI paths, filter relative to config dir.
+            for path in paths {
+                let resolved = URL(filePath: path).standardized.path(percentEncoded: false)
+                let result = await lintFiles(scanRoot: resolved, filterBase: config.rootDirectory)
+                allDiagnostics.append(contentsOf: result.diagnostics)
+            }
+        } else {
+            // No config: use CLI paths, filter relative to each scan root (backward compat).
+            for path in paths {
+                let resolved = URL(filePath: path).standardized.path(percentEncoded: false)
+                let result = await lintFiles(scanRoot: resolved, filterBase: resolved)
+                allDiagnostics.append(contentsOf: result.diagnostics)
+            }
         }
+
         return LintResult(diagnostics: allDiagnostics.sorted())
     }
 
     // MARK: - Private
 
     @LintActor
-    private func lintFiles(rootPath: String) async -> LintResult {
+    private func lintFiles(scanRoot: String, filterBase: String) async -> LintResult {
         let allSwiftFiles: [String]
         do {
-            allSwiftFiles = try FileCollector.collectSwiftFiles(rootPath: rootPath)
+            allSwiftFiles = try FileCollector.collectSwiftFiles(rootPath: scanRoot)
         } catch {
-            logger.error("Failed to collect files at \(rootPath): \(error)")
+            logger.error("Failed to collect files at \(scanRoot): \(error)")
             return LintResult(diagnostics: [])
         }
 
@@ -48,20 +68,20 @@ package struct LintEngine {
                 files: filtered,
                 include: config.includedPaths,
                 exclude: config.excludedPaths,
-                rootPath: rootPath,
+                rootPath: filterBase,
             )
         }
         filtered = FileCollector.applyFilters(
             files: filtered,
             include: rules.globalInclude,
             exclude: rules.globalExclude,
-            rootPath: rootPath,
+            rootPath: filterBase,
         )
 
         let fileDiagnostics = await filtered.asyncMap(
             numberOfConcurrentTasks: 10,
         ) { filePath -> [Diagnostic] in
-            await lintSingleFile(filePath: filePath, rootPath: rootPath)
+            await lintSingleFile(filePath: filePath, filterBase: filterBase)
         }
 
         return LintResult(diagnostics: Array(fileDiagnostics.joined()).sorted())
@@ -70,7 +90,7 @@ package struct LintEngine {
     @LintActor
     private func lintSingleFile(
         filePath: String,
-        rootPath: String,
+        filterBase: String,
     ) -> [Diagnostic] {
         let source: String
         do {
@@ -82,7 +102,7 @@ package struct LintEngine {
 
         let sourceFile = Parser.parse(source: source)
         let converter = SourceLocationConverter(fileName: filePath, tree: sourceFile)
-        let relativePath = FileCollector.makeRelative(filePath, to: rootPath)
+        let relativePath = FileCollector.makeRelative(filePath, to: filterBase)
         let applicable = rules.rules.filter { FileCollector.ruleApplies($0, to: relativePath) }
 
         var diagnostics: [Diagnostic] = []
