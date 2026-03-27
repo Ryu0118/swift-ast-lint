@@ -47,7 +47,6 @@ public struct Linter: AsyncParsableCommand {
     public init() {}
 
     public func run() async throws {
-        Swift.print("DEBUG run() paths=\(paths) ruleCount=\(Self.storedRules.withLock { $0?.rules.count ?? -1 })") // swiftlint:disable:this no_raw_print
         guard let rules = Self.storedRules.withLock({ $0 }) else {
             logger.error("No rules registered")
             throw ExitCode(1)
