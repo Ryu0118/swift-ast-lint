@@ -22,7 +22,7 @@ public protocol RuleProtocol: Sendable {
     @LintActor func check(_ file: SourceFileSyntax, _ context: LintContext, _ arguments: Arguments)
 }
 
-package extension RuleProtocol {
+public extension RuleProtocol {
     /// Executes this rule, resolving arguments from raw YAML or falling back to defaults.
     @LintActor
     func execute(file: SourceFileSyntax, context: LintContext, argsYAML: String?) {

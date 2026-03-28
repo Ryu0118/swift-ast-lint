@@ -12,7 +12,8 @@ public final class LintContext {
     private let ruleID: String
     private var diagnostics: [Diagnostic] = []
 
-    init(
+    /// Creates a context for accumulating diagnostics from a single rule against a single file.
+    public init(
         filePath: String,
         sourceLocationConverter: SourceLocationConverter,
         ruleID: String,
@@ -56,7 +57,8 @@ public final class LintContext {
         diagnostics.append(diagnostic)
     }
 
-    func collectDiagnostics() -> [Diagnostic] {
+    /// Returns all diagnostics accumulated so far.
+    public func collectDiagnostics() -> [Diagnostic] {
         diagnostics
     }
 }

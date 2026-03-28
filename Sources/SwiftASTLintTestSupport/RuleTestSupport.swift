@@ -1,4 +1,4 @@
-@testable import SwiftASTLint
+import SwiftASTLint
 import SwiftParser
 import SwiftSyntax
 
