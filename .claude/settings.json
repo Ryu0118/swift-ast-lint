@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "cat | sh .claude/hooks/check-architecture.sh"
+          },
+          {
+            "type": "command",
+            "command": "cat | sh .claude/hooks/protect-skill-files.sh"
           }
         ]
       }
