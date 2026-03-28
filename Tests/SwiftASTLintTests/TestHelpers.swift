@@ -17,3 +17,17 @@ func makeLintContext(
     )
     return (parsed, context)
 }
+
+/// Creates a minimal FixIt for tests that only need to check isFixable/Equatable.
+func makeStubFixIt() -> FixIt {
+    let source = "var x = 1"
+    let tree = Parser.parse(source: source)
+    guard let token = tree.firstToken(viewMode: .sourceAccurate) else {
+        preconditionFailure("stub source must parse to at least one token")
+    }
+    let newToken = token.with(\.tokenKind, .keyword(.let))
+    return FixIt(
+        message: SimpleFixItMessage("stub"),
+        changes: [.replace(oldNode: Syntax(token), newNode: Syntax(newToken))],
+    )
+}

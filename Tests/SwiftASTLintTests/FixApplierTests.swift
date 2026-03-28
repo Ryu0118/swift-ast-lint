@@ -1,5 +1,4 @@
 @testable import SwiftASTLint
-import SwiftDiagnostics
 import SwiftParser
 import SwiftSyntax
 import Testing

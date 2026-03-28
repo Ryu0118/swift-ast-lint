@@ -64,6 +64,7 @@ let package = Package(
                 "SwiftASTLintTestSupport",
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
                 .product(name: "SwiftParser", package: "swift-syntax"),
+                .product(name: "SwiftDiagnostics", package: "swift-syntax"),
                 .product(name: "FileManagerProtocol", package: "FileManagerProtocol"),
             ],
         ),
