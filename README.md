@@ -238,9 +238,9 @@ Each level can only narrow, never widen. Rules not listed in `rules:` apply to a
 | `1` | Runtime error (file I/O, config parse failure) |
 | `2` | Lint errors found (Claude Code hooks compatible) |
 
-## Claude Code Skill
+## Agent Skill
 
-This repository includes a **rule-creator** skill that teaches Claude Code how to write SwiftASTLint rules — Rule/ParameterizedRule API, fix-its, YAML config, and testing patterns.
+This repository includes a **rule-creator** [Agent Skill](https://agentskills.io) that teaches AI coding agents how to write SwiftASTLint rules — Rule/ParameterizedRule API, fix-its, YAML config, and testing patterns.
 
 ### Install
 
@@ -249,14 +249,14 @@ This repository includes a **rule-creator** skill that teaches Claude Code how t
 npx skills add Ryu0118/swift-ast-lint --skill rule-creator -g
 
 # Or download directly
-mkdir -p ~/.claude/skills/rule-creator
-curl -fsSL https://raw.githubusercontent.com/Ryu0118/swift-ast-lint/main/.claude/skills/rule-creator/SKILL.md \
-  -o ~/.claude/skills/rule-creator/SKILL.md
+mkdir -p ~/.agents/skills/rule-creator
+curl -fsSL https://raw.githubusercontent.com/Ryu0118/swift-ast-lint/main/.agents/skills/rule-creator/SKILL.md \
+  -o ~/.agents/skills/rule-creator/SKILL.md
 ```
 
 ### Usage
 
-Once installed, invoke it directly or let Claude detect it automatically:
+Once installed, invoke it directly or let your agent detect it automatically:
 
 ```
 /rule-creator add a rule that checks for force-unwrap
