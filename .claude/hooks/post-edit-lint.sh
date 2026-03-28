@@ -41,10 +41,20 @@ if echo "$FILE_PATH" | grep -q '\.swift$'; then
         HAS_ERROR=1
       fi
     fi
+
+    # 3. ast-lint (changed file only)
+    if [ -x "$SRCROOT/scripts/ast-lint.sh" ]; then
+      AST_OUTPUT=$("$SRCROOT/scripts/ast-lint.sh" "$FILE_PATH" 2>&1) || true
+      if [ -n "$AST_OUTPUT" ]; then
+        echo "$AST_OUTPUT" >&2
+        ALL_REASONS="${ALL_REASONS}${AST_OUTPUT}\n"
+        HAS_ERROR=1
+      fi
+    fi
   fi
 fi
 
-# 3. gitnagg (always, regardless of file type)
+# 4. gitnagg (always, regardless of file type)
 if [ -x "$SRCROOT/.nest/bin/gitnagg" ] && [ -f "$SRCROOT/.gitnagg.yml" ]; then
   set +e
   NAGG_OUTPUT=$("$SRCROOT/.nest/bin/gitnagg" check --config "$SRCROOT/.gitnagg.yml" 2>&1)

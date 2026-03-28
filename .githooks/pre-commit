@@ -44,7 +44,16 @@ if [ -n "$ABSOLUTE_FILES" ]; then
     echo "SwiftLint reported issues. Fix them before committing."
     exit 1
   fi
-fi
 
+  # ast-lint: run on staged files only
+  if [ -x "$SRCROOT/scripts/ast-lint.sh" ]; then
+    # shellcheck disable=SC2086
+    if ! "$SRCROOT/scripts/ast-lint.sh" $ABSOLUTE_FILES; then
+      echo ""
+      echo "AST lint reported issues. Fix them before committing."
+      exit 1
+    fi
+  fi
+fi
 
 exit 0

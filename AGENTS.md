@@ -25,7 +25,8 @@ make install-commands  # Install swiftlint, swiftformat, gitnagg via nest
 make format            # Run swiftformat
 make lint              # Run swiftlint --strict
 make test              # Run swift test
-make check             # format + lint + test
+make ast-lint          # Run AST linter (cached build)
+make check             # format + lint + ast-lint + test
 make hooks             # Set up git hooks
 ```
 
@@ -33,7 +34,7 @@ make hooks             # Set up git hooks
 
 - Follow `.swiftlint.yml` strictly. 0 violations. All prohibited patterns are enforced by custom_rules there — do not duplicate here.
 - `package` access for internal API. `public` only for user-facing API.
-- DI via init: 外部依存（ファイルシステム、ネットワーク等）はprotocol経由でinitに受け取り、default parameterで本番実装を指定。staticメソッドで引数バケツリレーしない。enumではなくstructにする。
+- DI via init: inject external dependencies (file system, network, etc.) through protocols in the initializer with default parameters for production implementations. No static method argument forwarding chains. Use structs, not enums.
 - Logging via `swift-log`. Package-level `logger` instance.
 - `Codable` for config/data parsing. No manual dictionary casting.
 
