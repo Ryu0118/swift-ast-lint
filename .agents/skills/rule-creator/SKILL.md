@@ -213,7 +213,6 @@ init() throws {
 
 ```swift
 @Test("fix replaces var with let")
-@LintActor
 func fixVarToLet() {
     let (diagnostics, fixedSource) = myRule.lintAndFix(source: "var x = 1\n")
     #expect(diagnostics.count == 1)

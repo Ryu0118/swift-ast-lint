@@ -104,7 +104,6 @@ public let rules = RuleSet {
     }
 }
 
-@LintActor
 private func checkNesting(in node: Syntax, depth: Int, context: LintContext) {
     for child in node.children(viewMode: .sourceAccurate) {
         let isControlFlow = child.is(IfExprSyntax.self)
