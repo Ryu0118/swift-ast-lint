@@ -15,7 +15,7 @@ lint:
 	"$(SWIFTLINT)" lint --config .swiftlint.yml --strict
 
 ast-lint:
-	swift run --package-path swift-ast-linter swift-ast-lint ./Sources
+	./scripts/ast-lint.sh ./Sources
 
 format-lint: format lint
 
