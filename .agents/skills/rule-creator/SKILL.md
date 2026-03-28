@@ -3,12 +3,15 @@ name: rule-creator
 description: >
   Create SwiftASTLint lint rules for a user's linter project.
   Covers Rule (no args) and ParameterizedRule (YAML-configurable args) APIs,
-  RuleSet composition, YAML config for per-rule args/include/exclude,
-  and unit testing with SwiftASTLintTestSupport.
+  RuleSet composition, YAML config for per-rule args/include/exclude/disabled_rules,
+  autofix with SwiftSyntax FixIt, and unit testing with SwiftASTLintTestSupport.
   Use when: user asks to "add a lint rule", "create a rule", "write a rule",
   mentions "SwiftASTLint rule", "lint rule", "AST rule",
   wants to check code patterns via SwiftSyntax,
   or needs help writing Rule closures.
+  Also trigger when user says "add a check for...", "detect when...",
+  "enforce that...", "ban X in code", or any request about catching
+  code patterns at the AST level — even if they don't mention SwiftASTLint.
   Also use when user runs /rule-creator.
 ---
 
@@ -16,51 +19,57 @@ description: >
 
 ## Orchestration
 
-When invoked, first figure out where the user is and guide them through the right steps:
+Your job is to figure out where the user is and guide them to the next step. Be flexible — if they already have everything set up, skip straight to writing the rule. If they're starting from zero, walk them through setup first.
 
-### 1. No linter project exists
+### Step 1: Determine project state
 
-If there is no `Sources/Rules/` directory, no `Package.swift` importing SwiftASTLint, or the user is in an unrelated directory:
+Before writing any code, check the working directory:
 
-Tell the user they need to scaffold a linter project first:
-
-```
-To add lint rules, you first need a linter project.
-Run these commands to get started:
-
-  swiftastlinttool init --path ./MyLinter --name MyLinter
-  cd MyLinter
-
-Then come back and ask me to create the rule!
-```
-
-If `swiftastlinttool` is not installed, also tell them how to install it:
+1. Look for `Sources/Rules/Rules.swift` and a `Package.swift` that imports SwiftASTLint
+2. If found, you know where to create rule files — proceed to Step 2
+3. If NOT found, ask the user:
 
 ```
-First install swiftastlinttool:
+I don't see a SwiftASTLint linter project in the current directory.
+
+Where would you like to create rules?
+  a) Scaffold a new linter project here (I'll run swiftastlinttool init)
+  b) Point me to an existing linter project directory
+  c) You're in the wrong directory — cd somewhere else and try again
+```
+
+If `swiftastlinttool` isn't installed, explain how to get it:
+
+```
+You'll need swiftastlinttool first:
   curl -fsSL https://raw.githubusercontent.com/Ryu0118/swift-ast-lint/main/install.sh | bash
-
-Then scaffold your linter:
-  swiftastlinttool init --path ./MyLinter --name MyLinter
-  cd MyLinter
 ```
 
-Do NOT attempt to create rule files without a valid linter project.
+The reason we need a proper project is that rules are compiled Swift code — they need a Package.swift with the SwiftSyntax dependency, a Rules module, and a test target. Without this structure, the rule files won't compile.
 
-### 2. Linter project exists, ready to add rules
+### Step 2: Understand the rule
 
-If `Sources/Rules/Rules.swift` and `Package.swift` (with SwiftASTLint dependency) exist, proceed to create the rule:
+Ask what the user wants to detect. Good questions:
 
-1. Understand what the user wants to detect
-2. Write the rule in a new file under `Sources/Rules/`
-3. Add it to the `RuleSet` in `Rules.swift`
-4. Write tests in `Tests/RulesTests/`
-5. Run `swift test` to verify
-6. Optionally configure YAML args/include/exclude
+- What code pattern should this catch? (get a concrete example)
+- Should it be a warning or error?
+- Should it be fixable? (can the code be automatically corrected?)
+- Does it need configurable thresholds? (→ ParameterizedRule with YAML args)
+- Should it apply to all files or specific paths? (→ YAML include/exclude)
 
-### 3. Modifying an existing rule
+If the user already described the rule clearly, skip the questions and start writing.
 
-If the user references a rule that already exists, read its current implementation and tests before making changes.
+### Step 3: Write the rule
+
+1. Create a new `.swift` file in `Sources/Rules/` (name it after the rule)
+2. Add the rule to the `RuleSet` in `Rules.swift`
+3. Write tests in `Tests/RulesTests/`
+4. Run `swift test` to verify
+5. Optionally configure YAML args/include/exclude in `.swift-ast-lint.yml`
+
+### Step 4: Iterate if needed
+
+If the user says "also catch X" or "that's not quite right", read the existing rule and tests before modifying.
 
 ---
 
@@ -73,6 +82,8 @@ Rule(id: "rule-id") { file, context in
     context.report(on: someNode, message: "Description", severity: .warning)
 }
 ```
+
+Severity is specified per-report in the closure. There is no default severity on Rule itself.
 
 ### Rule with autofix
 
@@ -125,8 +136,7 @@ ParameterizedRule(id: "my-rule", defaultArguments: MyArgs()) { file, context, ar
 }
 ```
 
-**Key rules:**
-- `severity` is always specified per-report in the closure. No default severity on Rule.
+**Key points:**
 - `include`/`exclude` are in YAML only, not in Rule code.
 - Args must have defaults via `init()`. Rules work without YAML.
 
@@ -142,7 +152,6 @@ public let rules = RuleSet {
 ## YAML Config (`.swift-ast-lint.yml`)
 
 ```yaml
-# Disable specific rules entirely
 disabled_rules:
   - "deprecated-rule"
 
@@ -156,17 +165,7 @@ rules:
       - "**/*Generated.swift"
 ```
 
-Rules not listed use defaults. No need to declare every rule.
-Rules in `disabled_rules` are skipped entirely regardless of other config.
-
-## Workflow
-
-1. Create a new `.swift` file in `Sources/Rules/`
-2. Add the rule to `RuleSet` in `Rules.swift`
-3. Write unit tests using `SwiftASTLintTestSupport` (see below)
-4. `swift test` to verify
-5. Optionally configure YAML args/include/exclude
-6. `swift run swift-ast-lint ./path` to test on real code
+Rules not listed use defaults. Rules in `disabled_rules` are skipped entirely.
 
 ## Testing with SwiftASTLintTestSupport
 
@@ -201,7 +200,7 @@ struct MyRuleTests {
 }
 ```
 
-Finding a rule from RuleSet (use `init() throws` with `#require`):
+Finding a rule from RuleSet:
 
 ```swift
 private let rule: any RuleProtocol
@@ -220,13 +219,6 @@ func fixVarToLet() {
     #expect(diagnostics.count == 1)
     #expect(diagnostics[0].isFixable)
     #expect(fixedSource == "let x = 1\n")
-}
-
-@Test("non-fixable violation returns nil fixedSource")
-@LintActor
-func nonFixable() {
-    let (_, fixedSource) = myRule.lintAndFix(source: "let x = 1\n")
-    #expect(fixedSource == nil)
 }
 ```
 
