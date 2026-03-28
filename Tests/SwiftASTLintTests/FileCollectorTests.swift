@@ -152,4 +152,24 @@ struct FileCollectorTests {
     func makeRelativeDirectChild() {
         #expect(FileCollector.makeRelative("/root/a.swift", to: "/root") == "a.swift")
     }
+
+    @Test("trailing slash on root does not produce double slash")
+    func makeRelativeTrailingSlash() {
+        #expect(FileCollector.makeRelative("/root/Sources/a.swift", to: "/root/") == "Sources/a.swift")
+    }
+
+    // MARK: - collectSwiftFiles path normalization
+
+    @Test("collected paths never contain double slashes")
+    func collectSwiftFilesNoDoubleSlash() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
+            let trailingSlashRoot = root.hasSuffix("/") ? root : root + "/"
+            try "".write(toFile: "\(root)/a.swift", atomically: true, encoding: .utf8)
+
+            let files = try collector.collectSwiftFiles(rootPath: trailingSlashRoot)
+            #expect(files.count == 1)
+            #expect(!files[0].contains("//"))
+        }
+    }
 }

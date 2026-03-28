@@ -17,7 +17,7 @@ package struct FileCollector {
         var files: [String] = []
         while let path = enumerator.nextObject() as? String {
             if path.hasSuffix(".swift") {
-                files.append("\(rootPath)/\(path)")
+                files.append(URL(filePath: rootPath).appending(path: path).path(percentEncoded: false))
             }
         }
         return files.sorted()
@@ -65,8 +65,12 @@ package struct FileCollector {
 
     /// Converts an absolute path to a relative path from `root`.
     package static func makeRelative(_ path: String, to root: String) -> String {
-        if path.hasPrefix(root + "/") {
-            return String(path.dropFirst(root.count + 1))
+        let rootURL = URL(filePath: root, directoryHint: .isDirectory)
+        let fileURL = URL(filePath: path)
+        let rootPrefix = rootURL.path(percentEncoded: false)
+        let filePath = fileURL.path(percentEncoded: false)
+        if filePath.hasPrefix(rootPrefix) {
+            return String(filePath.dropFirst(rootPrefix.count))
         }
         return path
     }
