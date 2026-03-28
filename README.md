@@ -192,6 +192,10 @@ excluded_paths:
   - "**/*Generated.swift"
   - ".build/**"
 
+# Disable specific rules entirely
+disabled_rules:
+  - "no-force-try"
+
 # Per-rule configuration
 rules:
   large-type:
@@ -205,12 +209,13 @@ rules:
 
 ### Filter priority
 
-Filters are applied as an intersection — each level can only narrow, never widen:
+Rules are filtered in this order:
 
-1. **yml** `included_paths` / `excluded_paths` — project-wide file filtering
-2. **Per-rule** `include` / `exclude` in the `rules:` YAML section — per-rule file filtering
+1. **`disabled_rules`** — rules listed here are skipped entirely
+2. **`included_paths` / `excluded_paths`** — project-wide file filtering
+3. **Per-rule `include` / `exclude`** in the `rules:` YAML section — per-rule file filtering
 
-Rules not listed in the `rules:` section use no path filtering (apply to all files that pass step 1).
+Each level can only narrow, never widen. Rules not listed in `rules:` apply to all files that pass step 2.
 
 ## Exit Codes
 

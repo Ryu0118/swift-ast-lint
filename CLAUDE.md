@@ -14,7 +14,7 @@ SwiftASTLint internal structure:
 - `SimpleFixItMessage` — Public `FixItMessage` implementation for rule authors.
 - `ConfigurationLoader` — YAML config via `Decodable`. Returns `nil` if file missing.
 - `@LintActor` global actor isolates `LintContext` and Rule closures. No `@unchecked Sendable`, no `await` in Rule closures.
-- Intersection filtering: yml > RuleSet > Rule. Each level can only narrow, never widen.
+- Intersection filtering: disabled_rules > yml paths > per-rule paths. Each level can only narrow, never widen.
 - Exit code 2 for lint errors. Compatible with Claude Code hooks.
 - Depends on `SwiftDiagnostics` (from swift-syntax) for `FixIt`, `FixIt.Change`, `SourceEdit`. Does NOT use `@_spi(FixItApplier)` — fix application is self-contained in `FixApplier`.
 

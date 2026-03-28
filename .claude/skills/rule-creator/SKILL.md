@@ -92,6 +92,10 @@ public let rules = RuleSet {
 ## YAML Config (`.swift-ast-lint.yml`)
 
 ```yaml
+# Disable specific rules entirely
+disabled_rules:
+  - "deprecated-rule"
+
 rules:
   my-rule:
     args:
@@ -103,6 +107,7 @@ rules:
 ```
 
 Rules not listed use defaults. No need to declare every rule.
+Rules in `disabled_rules` are skipped entirely regardless of other config.
 
 ## Workflow
 
