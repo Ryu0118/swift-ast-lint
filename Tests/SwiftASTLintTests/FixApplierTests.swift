@@ -26,7 +26,6 @@ struct FixApplierTests {
     // MARK: - Single replacement
 
     @Test("single token replacement via FixIt.Change.replace")
-    @LintActor
     func singleReplace() throws {
         let source = "var x = 1\n"
         let tree = Parser.parse(source: source)
@@ -47,7 +46,6 @@ struct FixApplierTests {
     // MARK: - Multiple non-overlapping
 
     @Test("multiple non-overlapping replacements on separate lines")
-    @LintActor
     func multipleNonOverlapping() {
         let source = "var a = 1\nvar b = 2\n"
         let tree = Parser.parse(source: source)
@@ -73,7 +71,6 @@ struct FixApplierTests {
     // MARK: - Overlapping
 
     @Test("overlapping edits skip the later one")
-    @LintActor
     func overlappingEditsSkipped() throws {
         let source = "var x = 1\n"
         let tree = Parser.parse(source: source)
@@ -97,7 +94,6 @@ struct FixApplierTests {
     // MARK: - UTF-8 multibyte
 
     @Test("multibyte UTF-8 identifiers are handled correctly")
-    @LintActor
     func multibyte() throws {
         let source = "var 名前 = 1\n"
         let tree = Parser.parse(source: source)
@@ -118,7 +114,6 @@ struct FixApplierTests {
     // MARK: - Node deletion
 
     @Test("deleting a node via replaceText with empty string removes it from source")
-    @LintActor
     func nodeRemoval() throws {
         let source = "let x: Int = 1\n"
         let tree = Parser.parse(source: source)
@@ -145,7 +140,6 @@ struct FixApplierTests {
     // MARK: - Replacement text longer/shorter than original
 
     @Test("replacement text shorter than original preserves surrounding content")
-    @LintActor
     func shorterReplacement() throws {
         let source = "var longName = 1\n"
         let tree = Parser.parse(source: source)
@@ -172,7 +166,6 @@ struct FixApplierTests {
     }
 
     @Test("replacement text longer than original preserves surrounding content")
-    @LintActor
     func longerReplacement() throws {
         let source = "var x = 1\n"
         let tree = Parser.parse(source: source)
@@ -201,7 +194,6 @@ struct FixApplierTests {
     // MARK: - Multiple changes in one FixIt
 
     @Test("single FixIt with multiple non-overlapping changes applies all")
-    @LintActor
     func multipleChangesInOneFixIt() {
         let source = "var a = 1\nvar b = 2\n"
         let tree = Parser.parse(source: source)
@@ -224,7 +216,6 @@ struct FixApplierTests {
     // MARK: - Trivia replacement
 
     @Test("replaceLeadingTrivia removes extra spaces")
-    @LintActor
     func replaceLeadingTrivia() throws {
         let source = "  let x = 1\n"
         let tree = Parser.parse(source: source)
@@ -242,7 +233,6 @@ struct FixApplierTests {
     }
 
     @Test("replaceTrailingTrivia normalizes whitespace")
-    @LintActor
     func replaceTrailingTrivia() throws {
         let source = "let   x = 1\n"
         let tree = Parser.parse(source: source)
