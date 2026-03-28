@@ -5,6 +5,7 @@ import SwiftSyntax
 /// Only rules that require AST analysis beyond SwiftLint's regex capabilities.
 public let rules = RuleSet {
     singleLargeTypePerFileRule
+    deepNestingRule
 
     Rule(id: "prefer-string-raw-value-enum") { file, context in
         for stmt in file.statements {
