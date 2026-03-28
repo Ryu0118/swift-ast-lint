@@ -240,38 +240,26 @@ Each level can only narrow, never widen. Rules not listed in `rules:` apply to a
 
 ## Claude Code Skill
 
-This repository includes a **rule-creator** skill at `.claude/skills/rule-creator/SKILL.md` that teaches Claude Code how to write SwiftASTLint rules — including the Rule/ParameterizedRule API, fix-its, YAML config, and testing patterns.
+This repository includes a **rule-creator** skill that teaches Claude Code how to write SwiftASTLint rules — Rule/ParameterizedRule API, fix-its, YAML config, and testing patterns.
 
-### Automatic (project-local)
+### Install
 
-When you work in this repository with Claude Code, the skill is automatically discovered. No installation needed.
+```bash
+# Install globally via skills CLI (https://github.com/vercel-labs/skills)
+npx skills add Ryu0118/swift-ast-lint --skill rule-creator -g
+
+# Or download directly
+mkdir -p ~/.claude/skills/rule-creator
+curl -fsSL https://raw.githubusercontent.com/Ryu0118/swift-ast-lint/main/.claude/skills/rule-creator/SKILL.md \
+  -o ~/.claude/skills/rule-creator/SKILL.md
+```
+
+### Usage
+
+Once installed, invoke it directly or let Claude detect it automatically:
 
 ```
 /rule-creator add a rule that checks for force-unwrap
-```
-
-Claude also loads the skill automatically when you ask to create or write a lint rule.
-
-### Install to other projects
-
-Use the [skills CLI](https://github.com/vercel-labs/skills) to install the skill into any project:
-
-```bash
-npx skills add Ryu0118/swift-ast-lint --skill rule-creator
-```
-
-Or install globally (available across all your projects):
-
-```bash
-npx skills add Ryu0118/swift-ast-lint --skill rule-creator -g
-```
-
-### Manual install
-
-Copy the skill directory to your personal skills folder:
-
-```bash
-cp -r .claude/skills/rule-creator ~/.claude/skills/
 ```
 
 ## License
