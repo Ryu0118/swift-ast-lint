@@ -34,7 +34,20 @@ struct InitCommand: AsyncParsableCommand {
 
         let resolvedURL = URL(filePath: targetPath).standardized
         let resolvedPath = resolvedURL.path(percentEncoded: false)
-        let packageName = name ?? resolvedURL.lastPathComponent
+
+        let packageName: String
+        if let name {
+            packageName = name
+        } else {
+            let defaultName = resolvedURL.lastPathComponent
+            // swiftlint:disable:next no_raw_print
+            Swift.print("Enter the package name (default: \(defaultName)):", terminator: " ")
+            if let input = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !input.isEmpty {
+                packageName = input
+            } else {
+                packageName = defaultName
+            }
+        }
 
         do {
             try await Scaffold().generate(at: resolvedPath, name: packageName)
