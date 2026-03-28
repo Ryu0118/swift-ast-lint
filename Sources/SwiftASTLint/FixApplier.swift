@@ -2,14 +2,14 @@ import SwiftDiagnostics
 import SwiftSyntax
 
 /// Applies fix-its to source text using SwiftSyntax's `SourceEdit`.
-package enum FixApplier {
+public enum FixApplier {
     /// Collects `SourceEdit`s from the given fix-its and applies them to `source`.
     ///
     /// Edits are applied from the end of the file toward the beginning so that
     /// earlier byte offsets remain valid. Overlapping edits are skipped.
     ///
     /// - Returns: The fixed source text and the number of edits that were applied.
-    static func applyFixes(fixIts: [FixIt], to source: String) -> (result: String, appliedCount: Int) {
+    public static func applyFixes(fixIts: [FixIt], to source: String) -> (result: String, appliedCount: Int) {
         var allEdits: [SourceEdit] = []
         for fixIt in fixIts {
             allEdits.append(contentsOf: fixIt.edits)

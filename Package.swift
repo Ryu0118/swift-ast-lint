@@ -61,6 +61,7 @@ let package = Package(
             name: "SwiftASTLintTests",
             dependencies: [
                 "SwiftASTLint",
+                "SwiftASTLintTestSupport",
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
                 .product(name: "SwiftParser", package: "swift-syntax"),
                 .product(name: "FileManagerProtocol", package: "FileManagerProtocol"),
