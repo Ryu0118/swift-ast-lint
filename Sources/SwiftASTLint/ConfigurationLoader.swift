@@ -35,6 +35,7 @@ public struct ConfigurationLoader {
             includedPaths: decoded.includedPaths,
             excludedPaths: decoded.excludedPaths,
             rootDirectory: rootDir,
+            disabledRules: Set(decoded.disabledRules),
             rules: ruleConfigs,
         )
     }
@@ -67,11 +68,13 @@ public struct ConfigurationLoader {
 private struct DecodableConfig: Decodable {
     let includedPaths: [String]
     let excludedPaths: [String]
+    let disabledRules: [String]
     let rules: [String: RuleConfiguration]
 
     private enum CodingKeys: String, CodingKey {
         case includedPaths = "included_paths"
         case excludedPaths = "excluded_paths"
+        case disabledRules = "disabled_rules"
         case rules
     }
 
@@ -79,6 +82,7 @@ private struct DecodableConfig: Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         includedPaths = try container.decodeIfPresent([String].self, forKey: .includedPaths) ?? []
         excludedPaths = try container.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
+        disabledRules = try container.decodeIfPresent([String].self, forKey: .disabledRules) ?? []
         rules = try container.decodeIfPresent([String: RuleConfiguration].self, forKey: .rules) ?? [:]
     }
 }

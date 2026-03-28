@@ -6,6 +6,8 @@ public struct Configuration: Sendable, Equatable {
     public let excludedPaths: [String]
     /// Absolute path to the directory containing the config file.
     public let rootDirectory: String
+    /// Rule IDs to disable entirely.
+    public let disabledRules: Set<String>
     /// Per-rule configuration overrides keyed by rule ID.
     public let rules: [String: RuleConfiguration]
 
@@ -14,11 +16,13 @@ public struct Configuration: Sendable, Equatable {
         includedPaths: [String] = [],
         excludedPaths: [String] = [],
         rootDirectory: String = ".",
+        disabledRules: Set<String> = [],
         rules: [String: RuleConfiguration] = [:],
     ) {
         self.includedPaths = includedPaths
         self.excludedPaths = excludedPaths
         self.rootDirectory = rootDirectory
+        self.disabledRules = disabledRules
         self.rules = rules
     }
 }

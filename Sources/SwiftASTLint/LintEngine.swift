@@ -91,7 +91,9 @@ package struct LintEngine {
         let sourceFile = Parser.parse(source: source)
         let converter = SourceLocationConverter(fileName: filePath, tree: sourceFile)
         let relativePath = FileCollector.makeRelative(filePath, to: filterBase)
+        let disabledRules = config?.disabledRules ?? []
         let applicable = rules.rules.filter { rule in
+            guard !disabledRules.contains(rule.id) else { return false }
             let ruleConfig = config?.rules[rule.id]
             let ruleInclude = ruleConfig?.include ?? []
             let ruleExclude = ruleConfig?.exclude ?? []

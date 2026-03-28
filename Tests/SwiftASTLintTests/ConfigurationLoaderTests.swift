@@ -84,4 +84,30 @@ struct ConfigurationLoaderTests {
             #expect(config.excludedPaths == [".build/**"])
         }
     }
+
+    @Test("disabled_rules parsed from YAML")
+    func disabledRules() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let yml = """
+            disabled_rules:
+              - "no-force-try"
+              - "large-type"
+            """
+            let path = dir.appendingPathComponent("cfg.yml")
+            try yml.write(to: path, atomically: true, encoding: .utf8)
+            let config = try #require(try ConfigurationLoader().load(from: path.path(percentEncoded: false)))
+            #expect(config.disabledRules == ["no-force-try", "large-type"])
+        }
+    }
+
+    @Test("absent disabled_rules defaults to empty")
+    func disabledRulesAbsent() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let yml = "included_paths:\n  - \"Sources/**\"\n"
+            let path = dir.appendingPathComponent("cfg.yml")
+            try yml.write(to: path, atomically: true, encoding: .utf8)
+            let config = try #require(try ConfigurationLoader().load(from: path.path(percentEncoded: false)))
+            #expect(config.disabledRules.isEmpty)
+        }
+    }
 }

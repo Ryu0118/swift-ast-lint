@@ -338,4 +338,32 @@ struct LinterTests {
     }
 }
 
+@Suite("LintEngine disabled_rules: YAML disabled_rules skips specified rules entirely")
+struct LintEngineDisabledRulesTests {
+    @Test("disabled_rules skips the specified rule")
+    func disabledRules() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
+            try "let x = 1\n".write(to: dir.appendingPathComponent("a.swift"), atomically: true, encoding: .utf8)
+
+            let config = Configuration(
+                rootDirectory: root,
+                disabledRules: ["skip-me"],
+            )
+            let rules = RuleSet {
+                Rule(id: "skip-me") { file, ctx in
+                    ctx.report(on: file, message: "should be skipped", severity: .error)
+                }
+                Rule(id: "keep-me") { file, ctx in
+                    ctx.report(on: file, message: "should remain", severity: .warning)
+                }
+            }
+            let linter = LintEngine(rules: rules, config: config)
+            let result = await linter.lint(paths: [root])
+            #expect(result.diagnostics.count == 1)
+            #expect(result.diagnostics[0].ruleID == "keep-me")
+        }
+    }
+}
+
 // swiftlint:enable line_length force_unwrapping deep_nesting_control_flow
