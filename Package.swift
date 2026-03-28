@@ -25,6 +25,7 @@ let package = Package(
             dependencies: [
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
                 .product(name: "SwiftParser", package: "swift-syntax"),
+                .product(name: "SwiftDiagnostics", package: "swift-syntax"),
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "AsyncOperations", package: "swift-async-operations"),
@@ -38,6 +39,7 @@ let package = Package(
                 "SwiftASTLint",
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
                 .product(name: "SwiftParser", package: "swift-syntax"),
+                .product(name: "SwiftDiagnostics", package: "swift-syntax"),
             ],
         ),
         .target(

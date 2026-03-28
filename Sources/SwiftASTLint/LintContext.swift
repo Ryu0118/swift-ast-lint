@@ -1,3 +1,4 @@
+import SwiftDiagnostics
 import SwiftSyntax
 
 /// Accumulates diagnostics reported by a single rule against a single file.
@@ -31,6 +32,26 @@ public final class LintContext {
             filePath: filePath,
             line: location.line,
             column: location.column,
+        )
+        diagnostics.append(diagnostic)
+    }
+
+    /// Reports a diagnostic at `node` with associated fix-its for automatic correction.
+    public func reportWithFix(
+        on node: some SyntaxProtocol,
+        message: String,
+        severity: Severity,
+        fixIts: [FixIt],
+    ) {
+        let location = sourceLocationConverter.location(for: node.positionAfterSkippingLeadingTrivia)
+        let diagnostic = Diagnostic(
+            ruleID: ruleID,
+            severity: severity,
+            message: message,
+            filePath: filePath,
+            line: location.line,
+            column: location.column,
+            fixIts: fixIts,
         )
         diagnostics.append(diagnostic)
     }
