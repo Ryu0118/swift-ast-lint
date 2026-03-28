@@ -17,10 +17,12 @@ enum Constants {
 
     static let rulesTarget = "Rules"
     static let executableTarget = "swift-ast-lint"
+    static let testTarget = "RulesTests"
 
     // MARK: - Products
 
     static let swiftASTLintProduct = "SwiftASTLint"
+    static let testSupportProduct = "SwiftASTLintTestSupport"
     static let swiftSyntaxProduct = "SwiftSyntax"
 
     // MARK: - Config
@@ -45,6 +47,18 @@ enum Constants {
 
         public let rules = RuleSet {
             // Add your rules here
+        }
+        """
+
+    static let rulesTestsSwift =
+        """
+        @testable import Rules
+        import SwiftASTLint
+        import SwiftASTLintTestSupport
+        import Testing
+
+        struct RulesTests {
+            // Add your rule tests here
         }
         """
 
