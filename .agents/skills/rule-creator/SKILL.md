@@ -95,13 +95,29 @@ If the user says "also catch X" or "that's not quite right", read the existing r
 
 **Skip this step if the user pointed to an existing project (not scaffolded in Step 1).**
 
-After all rules pass tests, present:
+After all rules pass tests, explain how to run lint and offer automation options. Present in a way that someone unfamiliar with the tooling can understand:
 
-1. How to run lint: `swift run --package-path <linter-path> swift-ast-lint <target-path>`
-2. Optional automation — ask which they want:
-   - **a)** Checksum cache script — skip rebuild when Rules sources unchanged
-   - **b)** Makefile target — `make ast-lint`
-   - **c)** Claude Code hooks / git pre-commit — auto-lint on commit
-   - **d)** None
+```
+Lint is ready. Here's how to run it:
+
+  swift run --package-path <linter-path> swift-ast-lint <target-path>
+
+This builds the linter and checks your code. First run takes a while
+(compiling SwiftSyntax), but subsequent runs are fast.
+
+Want to automate this? Options:
+
+  a) Build cache script — saves a hash of your rule files. If nothing
+     changed since last run, skips the build entirely and runs the
+     cached binary directly. Makes repeated lint runs near-instant.
+
+  b) Makefile — adds `make ast-lint` so you can run it with one command.
+     Pairs well with (a).
+
+  c) Claude Code hooks / git pre-commit — automatically runs lint
+     before every commit, so violations are caught before they land.
+
+  d) None — I'll just run it manually.
+```
 
 Wait for answer, then set up what they chose. See [references/setup-guide.md](references/setup-guide.md) for templates.
