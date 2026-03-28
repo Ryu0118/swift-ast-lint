@@ -55,6 +55,33 @@ cd swift-ast-lint
 swift build
 ```
 
+## Writing Rules with Agent Skills
+
+The recommended way to add rules is with the **rule-creator** [Agent Skill](https://agentskills.io). Install it, then just describe the rule you want — your AI agent writes the SwiftSyntax code, adds it to the RuleSet, and creates tests.
+
+```bash
+# via skills CLI (https://github.com/vercel-labs/skills)
+npx skills add Ryu0118/swift-ast-lint --skill rule-creator -g
+
+# or download directly to ~/.agents/skills/ (Agent Skills standard)
+mkdir -p ~/.agents/skills/rule-creator
+curl -fsSL https://raw.githubusercontent.com/Ryu0118/swift-ast-lint/main/.agents/skills/rule-creator/SKILL.md \
+  -o ~/.agents/skills/rule-creator/SKILL.md
+
+# for Claude Code: also install to ~/.claude/skills/
+mkdir -p ~/.claude/skills/rule-creator
+curl -fsSL https://raw.githubusercontent.com/Ryu0118/swift-ast-lint/main/.agents/skills/rule-creator/SKILL.md \
+  -o ~/.claude/skills/rule-creator/SKILL.md
+```
+
+Then tell your agent:
+
+```
+/rule-creator add a rule that detects control flow nested 4+ levels deep
+```
+
+You can also write rules manually — see [Rule API](#rule-api) below.
+
 ## Quick Start
 
 ```bash
@@ -237,30 +264,6 @@ Each level can only narrow, never widen. Rules not listed in `rules:` apply to a
 | `0` | No errors (warnings are OK) |
 | `1` | Runtime error (file I/O, config parse failure) |
 | `2` | Lint errors found (Claude Code hooks compatible) |
-
-## Agent Skill
-
-This repository includes a **rule-creator** [Agent Skill](https://agentskills.io) that teaches AI coding agents how to write SwiftASTLint rules — Rule/ParameterizedRule API, fix-its, YAML config, and testing patterns.
-
-### Install
-
-```bash
-# Install globally via skills CLI (https://github.com/vercel-labs/skills)
-npx skills add Ryu0118/swift-ast-lint --skill rule-creator -g
-
-# Or download directly
-mkdir -p ~/.agents/skills/rule-creator
-curl -fsSL https://raw.githubusercontent.com/Ryu0118/swift-ast-lint/main/.agents/skills/rule-creator/SKILL.md \
-  -o ~/.agents/skills/rule-creator/SKILL.md
-```
-
-### Usage
-
-Once installed, invoke it directly or let your agent detect it automatically:
-
-```
-/rule-creator add a rule that checks for force-unwrap
-```
 
 ## License
 
