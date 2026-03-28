@@ -1,0 +1,277 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 0.2.0)'
+        required: true
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate version format
+        run: |
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "error: version must be in semver format (e.g. 0.2.0)" >&2
+            exit 1
+          fi
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Check tag does not already exist
+        run: |
+          if git ls-remote --tags origin | grep -q "refs/tags/$VERSION$"; then
+            echo "error: tag $VERSION already exists" >&2
+            exit 1
+          fi
+        env:
+          VERSION: ${{ inputs.version }}
+
+  build-macos:
+    needs: preflight
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode 26.2
+        run: sudo xcode-select --switch /Applications/Xcode_26.2.app/Contents/Developer
+
+      - name: Bump Version.swift (build-time only)
+        run: |
+          sed -i '' "s/static let current = \".*\"/static let current = \"$VERSION\"/" \
+            Sources/swift-ast-lint-tool/Version.swift
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Build Universal Binary
+        run: xcrun swift build -c release --arch arm64 --arch x86_64
+
+      - name: Create Archive
+        run: |
+          cd .build/apple/Products/Release
+          tar -czvf "swiftastlinttool-${VERSION}-darwin-universal.tar.gz" swiftastlinttool
+          shasum -a 256 "swiftastlinttool-${VERSION}-darwin-universal.tar.gz" > "swiftastlinttool-${VERSION}-darwin-universal.tar.gz.sha256"
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: swiftastlinttool-darwin-universal
+          path: |
+            .build/apple/Products/Release/swiftastlinttool-${{ inputs.version }}-darwin-universal.tar.gz
+            .build/apple/Products/Release/swiftastlinttool-${{ inputs.version }}-darwin-universal.tar.gz.sha256
+          if-no-files-found: error
+
+      - name: Upload binary for artifact bundle
+        uses: actions/upload-artifact@v6
+        with:
+          name: binary-macos
+          path: .build/apple/Products/Release/swiftastlinttool
+          if-no-files-found: error
+
+  build-linux:
+    needs: preflight
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Swift (setup-swift)
+        if: matrix.arch == 'x86_64'
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '6.2'
+
+      - name: Install Swift (manual arm64)
+        if: matrix.arch == 'arm64'
+        run: |
+          sudo apt-get update && sudo apt-get install -y binutils gnupg2 libc6-dev libcurl4-openssl-dev \
+            libedit2 libgcc-13-dev libncurses-dev libpython3-dev libsqlite3-dev libstdc++-13-dev \
+            libxml2-dev libz3-dev pkg-config tzdata unzip zlib1g-dev
+          SWIFT_URL="https://download.swift.org/swift-6.2.1-release/ubuntu2404-aarch64/swift-6.2.1-RELEASE/swift-6.2.1-RELEASE-ubuntu24.04-aarch64.tar.gz"
+          curl -fsSL "$SWIFT_URL" -o /tmp/swift.tar.gz
+          sudo mkdir -p /opt/swift
+          sudo tar xzf /tmp/swift.tar.gz -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+          rm /tmp/swift.tar.gz
+
+      - name: Install dependencies
+        if: matrix.arch == 'x86_64'
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - name: Bump Version.swift (build-time only)
+        run: |
+          sed -i "s/static let current = \".*\"/static let current = \"$VERSION\"/" \
+            Sources/swift-ast-lint-tool/Version.swift
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Build Linux Binary
+        run: swift build -c release --static-swift-stdlib
+
+      - name: Create Archive
+        run: |
+          cd .build/release
+          tar -czvf "swiftastlinttool-${VERSION}-linux-${ARCH}.tar.gz" swiftastlinttool
+          sha256sum "swiftastlinttool-${VERSION}-linux-${ARCH}.tar.gz" > "swiftastlinttool-${VERSION}-linux-${ARCH}.tar.gz.sha256"
+        env:
+          VERSION: ${{ inputs.version }}
+          ARCH: ${{ matrix.arch }}
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: swiftastlinttool-linux-${{ matrix.arch }}
+          path: |
+            .build/release/swiftastlinttool-${{ inputs.version }}-linux-${{ matrix.arch }}.tar.gz
+            .build/release/swiftastlinttool-${{ inputs.version }}-linux-${{ matrix.arch }}.tar.gz.sha256
+          if-no-files-found: error
+
+      - name: Upload binary for artifact bundle
+        uses: actions/upload-artifact@v6
+        with:
+          name: binary-linux-${{ matrix.arch }}
+          path: .build/release/swiftastlinttool
+          if-no-files-found: error
+
+  commit-version:
+    needs: [build-macos, build-linux]
+    runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.push.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Bump Version.swift
+        run: |
+          sed -i "s/static let current = \".*\"/static let current = \"$VERSION\"/" \
+            Sources/swift-ast-lint-tool/Version.swift
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Commit and push
+        id: push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Sources/swift-ast-lint-tool/Version.swift
+          if git diff --cached --quiet; then
+            echo "Version.swift already at $VERSION, skipping commit"
+          else
+            git commit -m "chore: bump version to $VERSION"
+            git push origin main
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ inputs.version }}
+
+  create-release:
+    needs: [commit-version, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.commit-version.outputs.commit_sha }}
+
+      - name: Download all release archives
+        uses: actions/download-artifact@v6
+        with:
+          pattern: swiftastlinttool-*
+          path: /tmp/release-assets
+          merge-multiple: true
+
+      - name: Download binaries for artifact bundle
+        uses: actions/download-artifact@v6
+        with:
+          name: binary-macos
+          path: /tmp/binaries/macos
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: binary-linux-x86_64
+          path: /tmp/binaries/linux-x86_64
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: binary-linux-arm64
+          path: /tmp/binaries/linux-arm64
+
+      - name: Create Artifact Bundle
+        run: |
+          BUNDLE="swiftastlinttool.artifactbundle"
+
+          mkdir -p "$BUNDLE/swiftastlinttool-macos/bin" \
+                   "$BUNDLE/swiftastlinttool-linux-x86_64/bin" \
+                   "$BUNDLE/swiftastlinttool-linux-arm64/bin"
+
+          cp /tmp/binaries/macos/swiftastlinttool "$BUNDLE/swiftastlinttool-macos/bin/swiftastlinttool"
+          cp /tmp/binaries/linux-x86_64/swiftastlinttool "$BUNDLE/swiftastlinttool-linux-x86_64/bin/swiftastlinttool"
+          cp /tmp/binaries/linux-arm64/swiftastlinttool "$BUNDLE/swiftastlinttool-linux-arm64/bin/swiftastlinttool"
+          chmod +x "$BUNDLE/swiftastlinttool-macos/bin/swiftastlinttool" \
+                   "$BUNDLE/swiftastlinttool-linux-x86_64/bin/swiftastlinttool" \
+                   "$BUNDLE/swiftastlinttool-linux-arm64/bin/swiftastlinttool"
+
+          cat > "$BUNDLE/info.json" <<EOF
+          {
+            "schemaVersion": "1.0",
+            "artifacts": {
+              "swiftastlinttool": {
+                "version": "${VERSION}",
+                "type": "executable",
+                "variants": [
+                  {
+                    "path": "swiftastlinttool-macos/bin/swiftastlinttool",
+                    "supportedTriples": ["x86_64-apple-macosx", "arm64-apple-macosx"]
+                  },
+                  {
+                    "path": "swiftastlinttool-linux-x86_64/bin/swiftastlinttool",
+                    "supportedTriples": ["x86_64-unknown-linux-gnu"]
+                  },
+                  {
+                    "path": "swiftastlinttool-linux-arm64/bin/swiftastlinttool",
+                    "supportedTriples": ["aarch64-unknown-linux-gnu"]
+                  }
+                ]
+              }
+            }
+          }
+          EOF
+
+          zip -r "swiftastlinttool-${VERSION}.artifactbundle.zip" "$BUNDLE"
+          sha256sum "swiftastlinttool-${VERSION}.artifactbundle.zip" > "swiftastlinttool-${VERSION}.artifactbundle.zip.sha256"
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Create GitHub Release with all assets
+        run: |
+          gh release create "$VERSION" \
+            /tmp/release-assets/* \
+            "swiftastlinttool-${VERSION}.artifactbundle.zip" \
+            "swiftastlinttool-${VERSION}.artifactbundle.zip.sha256" \
+            --target "$TARGET_SHA" \
+            --title "$VERSION" \
+            --generate-notes
+        env:
+          VERSION: ${{ inputs.version }}
+          TARGET_SHA: ${{ needs.commit-version.outputs.commit_sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
