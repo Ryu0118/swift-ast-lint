@@ -17,7 +17,6 @@ let deepNestingRule = ParameterizedRule(
     checkNesting(in: Syntax(file), depth: 0, maxDepth: args.maxDepth, context: context)
 }
 
-@LintActor
 private func checkNesting(
     in node: Syntax,
     depth: Int,

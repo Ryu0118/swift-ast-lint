@@ -8,7 +8,6 @@ let preferStringRawValueEnumRule = Rule(id: "prefer-string-raw-value-enum") { fi
     }
 }
 
-@LintActor
 private func checkEnumForRedundantDescription(
     _ enumDecl: EnumDeclSyntax,
     context: LintContext,
