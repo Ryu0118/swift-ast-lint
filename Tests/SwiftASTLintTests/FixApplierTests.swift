@@ -1,4 +1,5 @@
 @testable import SwiftASTLint
+import SwiftDiagnostics
 import SwiftParser
 import SwiftSyntax
 import Testing
@@ -116,7 +117,7 @@ struct FixApplierTests {
 
     // MARK: - Node deletion
 
-    @Test("deleting a node (replacing with empty string) removes it from source")
+    @Test("deleting a node via replaceText with empty string removes it from source")
     @LintActor
     func nodeRemoval() throws {
         let source = "let x: Int = 1\n"
@@ -127,7 +128,13 @@ struct FixApplierTests {
 
         let fixIt = FixIt(
             message: SimpleFixItMessage("Remove type annotation"),
-            changes: [.replace(oldNode: Syntax(typeAnnotation), newNode: Syntax("" as TokenSyntax))],
+            changes: [
+                .replaceText(
+                    range: typeAnnotation.position ..< typeAnnotation.endPosition,
+                    with: "",
+                    in: Syntax(tree),
+                ),
+            ],
         )
 
         let (result, count) = FixApplier.applyFixes(fixIts: [fixIt], to: source)
@@ -137,26 +144,22 @@ struct FixApplierTests {
 
     // MARK: - Replacement text longer/shorter than original
 
-    @Test("replacement text shorter than original preserves offsets for prior edits")
+    @Test("replacement text shorter than original preserves surrounding content")
     @LintActor
     func shorterReplacement() throws {
-        // "private var x = 1" -> "var x = 1" by replacing whole decl
         let source = "var longName = 1\n"
         let tree = Parser.parse(source: source)
         let varDecl = try #require(tree.statements.first?.item.as(VariableDeclSyntax.self))
         let binding = try #require(varDecl.bindings.first)
-        let pattern = binding.pattern
-
-        // Replace the pattern (identifier) with a shorter name
-        let shortName = pattern.with(
-            \.description,
-            "x",
+        let identifier = binding.pattern.cast(IdentifierPatternSyntax.self)
+        let oldToken = identifier.identifier
+        let newToken = TokenSyntax(
+            .identifier("x"),
+            leadingTrivia: oldToken.leadingTrivia,
+            trailingTrivia: oldToken.trailingTrivia,
+            presence: .present,
         )
-        _ = shortName // We'll use a different approach for cleaner test
-
-        // Instead test via SourceEdit directly: replace "longName" with "x"
-        let identifier = pattern.cast(IdentifierPatternSyntax.self)
-        let newIdentifier = identifier.with(\.identifier, .identifier("x"))
+        let newIdentifier = identifier.with(\.identifier, newToken)
 
         let fixIt = FixIt(
             message: SimpleFixItMessage("Shorten name"),
@@ -176,7 +179,14 @@ struct FixApplierTests {
         let varDecl = try #require(tree.statements.first?.item.as(VariableDeclSyntax.self))
         let binding = try #require(varDecl.bindings.first)
         let identifier = binding.pattern.cast(IdentifierPatternSyntax.self)
-        let newIdentifier = identifier.with(\.identifier, .identifier("longVariableName"))
+        let oldToken = identifier.identifier
+        let newToken = TokenSyntax(
+            .identifier("longVariableName"),
+            leadingTrivia: oldToken.leadingTrivia,
+            trailingTrivia: oldToken.trailingTrivia,
+            presence: .present,
+        )
+        let newIdentifier = identifier.with(\.identifier, newToken)
 
         let fixIt = FixIt(
             message: SimpleFixItMessage("Lengthen name"),
