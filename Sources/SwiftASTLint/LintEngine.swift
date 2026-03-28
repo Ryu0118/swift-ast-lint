@@ -127,7 +127,7 @@ package struct LintEngine {
         let fileDiagnostics = await filtered.asyncMap(
             numberOfConcurrentTasks: 10,
         ) { filePath -> [Diagnostic] in
-            await lintSingleFile(filePath: filePath, filterBase: filterBase)
+            lintSingleFile(filePath: filePath, filterBase: filterBase)
         }
 
         return LintResult(diagnostics: Array(fileDiagnostics.joined()).sorted())
