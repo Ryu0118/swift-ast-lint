@@ -7,7 +7,6 @@ import Testing
 @Suite("lintAndFix test helper applies fix-its and returns both diagnostics and fixed source")
 struct LintAndFixTests {
     @Test("fixable rule returns fixed source")
-    @LintActor
     func fixableRule() {
         let rule = Rule(id: "var-to-let") { file, ctx in
             reportVarToLet(file: file, context: ctx)
@@ -20,7 +19,6 @@ struct LintAndFixTests {
     }
 
     @Test("non-fixable rule returns nil fixedSource")
-    @LintActor
     func nonFixableRule() {
         let rule = Rule(id: "no-fix") { file, ctx in
             for stmt in file.statements {
@@ -34,7 +32,6 @@ struct LintAndFixTests {
     }
 
     @Test("mixed fixable and non-fixable reports")
-    @LintActor
     func mixedFixableAndNonFixable() {
         let rule = Rule(id: "mixed") { file, ctx in
             let stmts = Array(file.statements)
@@ -53,7 +50,6 @@ struct LintAndFixTests {
     }
 
     @Test("ParameterizedRule with fix applies correctly via lintAndFix")
-    @LintActor
     func parameterizedRuleFix() {
         let rule = ParameterizedRule(
             id: "param-var-to-let",
@@ -73,12 +69,10 @@ private struct TargetKeywordArgs: Codable {
     let targetKeyword: String
 }
 
-@LintActor
 private func reportVarToLet(file: SourceFileSyntax, context: LintContext) {
     reportMatchingKeyword(file: file, context: context, keyword: "var")
 }
 
-@LintActor
 private func reportMatchingKeyword(
     file: SourceFileSyntax,
     context: LintContext,
