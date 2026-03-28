@@ -70,14 +70,27 @@ import SwiftASTLint
 import SwiftSyntax
 
 public let rules = RuleSet {
-    Rule(id: "no-force-try") { file, context in
-        for token in file.tokens(viewMode: .sourceAccurate) {
-            if token.tokenKind == .keyword(.try),
-               token.nextToken(viewMode: .sourceAccurate)?.tokenKind == .exclamationMark
-            {
-                context.report(on: token, message: "Force try (try!) is not allowed", severity: .error)
-            }
+    Rule(id: "deep-nesting") { file, context in
+        checkNesting(in: Syntax(file), depth: 0, context: context)
+    }
+}
+
+@LintActor
+private func checkNesting(in node: Syntax, depth: Int, context: LintContext) {
+    for child in node.children(viewMode: .sourceAccurate) {
+        let isControlFlow = child.is(IfExprSyntax.self)
+            || child.is(GuardStmtSyntax.self)
+            || child.is(ForStmtSyntax.self)
+            || child.is(WhileStmtSyntax.self)
+        let newDepth = isControlFlow ? depth + 1 : depth
+        if isControlFlow, newDepth >= 4 {
+            context.report(
+                on: child,
+                message: "Control flow nested \(newDepth) levels deep. Extract a helper function.",
+                severity: .error,
+            )
         }
+        checkNesting(in: child, depth: newDepth, context: context)
     }
 }
 ```
@@ -91,7 +104,7 @@ swift run swift-ast-lint ../my-project/Sources
 Output (SwiftLint/Xcode compatible):
 
 ```
-/path/to/File.swift:42:5: error: [no-force-try] Force try (try!) is not allowed
+/path/to/File.swift:42:9: error: [deep-nesting] Control flow nested 4 levels deep. Extract a helper function.
 ```
 
 ## Rule API
