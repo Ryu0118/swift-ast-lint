@@ -14,6 +14,56 @@ description: >
 
 # Rule Creator for SwiftASTLint
 
+## Orchestration
+
+When invoked, first figure out where the user is and guide them through the right steps:
+
+### 1. No linter project exists
+
+If there is no `Sources/Rules/` directory, no `Package.swift` importing SwiftASTLint, or the user is in an unrelated directory:
+
+Tell the user they need to scaffold a linter project first:
+
+```
+To add lint rules, you first need a linter project.
+Run these commands to get started:
+
+  swiftastlinttool init --path ./MyLinter --name MyLinter
+  cd MyLinter
+
+Then come back and ask me to create the rule!
+```
+
+If `swiftastlinttool` is not installed, also tell them how to install it:
+
+```
+First install swiftastlinttool:
+  curl -fsSL https://raw.githubusercontent.com/Ryu0118/swift-ast-lint/main/install.sh | bash
+
+Then scaffold your linter:
+  swiftastlinttool init --path ./MyLinter --name MyLinter
+  cd MyLinter
+```
+
+Do NOT attempt to create rule files without a valid linter project.
+
+### 2. Linter project exists, ready to add rules
+
+If `Sources/Rules/Rules.swift` and `Package.swift` (with SwiftASTLint dependency) exist, proceed to create the rule:
+
+1. Understand what the user wants to detect
+2. Write the rule in a new file under `Sources/Rules/`
+3. Add it to the `RuleSet` in `Rules.swift`
+4. Write tests in `Tests/RulesTests/`
+5. Run `swift test` to verify
+6. Optionally configure YAML args/include/exclude
+
+### 3. Modifying an existing rule
+
+If the user references a rule that already exists, read its current implementation and tests before making changes.
+
+---
+
 ## Rule API
 
 ### Rule (no arguments)

@@ -80,6 +80,8 @@ Then tell your agent:
 /rule-creator add a rule that detects control flow nested 4+ levels deep
 ```
 
+The skill checks your project structure first — if you haven't scaffolded a linter project yet, it walks you through `swiftastlinttool init` before writing any code.
+
 You can also write rules manually — see [Rule API](#rule-api) below.
 
 ## Quick Start
