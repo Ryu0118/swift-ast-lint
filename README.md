@@ -23,6 +23,7 @@ SwiftLint is great for common coding style checks, but falls short when you need
 1. `swiftastlinttool init` scaffolds a Swift Package with a linter executable
 2. You write lint rules using SwiftSyntax in `Sources/Rules/`
 3. `swift run swift-ast-lint ./Sources` runs your rules against your code
+4. `swift run swift-ast-lint --fix ./Sources` auto-fixes what it can
 
 ## Install
 
@@ -69,40 +70,13 @@ import SwiftASTLint
 import SwiftSyntax
 
 public let rules = RuleSet {
-    Rule(id: "no-force-try", severity: .error) { file, context in
+    Rule(id: "no-force-try") { file, context in
         for token in file.tokens(viewMode: .sourceAccurate) {
             if token.tokenKind == .keyword(.try),
                token.nextToken(viewMode: .sourceAccurate)?.tokenKind == .exclamationMark
             {
-                context.report(on: token, message: "Force try (try!) is not allowed")
+                context.report(on: token, message: "Force try (try!) is not allowed", severity: .error)
             }
-        }
-    }
-
-    Rule(
-        id: "single-large-public-type-per-file",
-        severity: .error,
-        exclude: ["**/*Generated.swift"]
-    ) { file, context in
-        let types = file.statements.compactMap { stmt -> (any DeclGroupSyntax)? in
-            if let cls = stmt.item.as(ClassDeclSyntax.self) { return cls }
-            if let str = stmt.item.as(StructDeclSyntax.self) { return str }
-            if let enm = stmt.item.as(EnumDeclSyntax.self) { return enm }
-            return nil
-        }
-        let largePublicTypes = types.filter { decl in
-            let isPublic = decl.modifiers.contains {
-                $0.name.tokenKind == .keyword(.public) || $0.name.tokenKind == .keyword(.package)
-            }
-            guard isPublic else { return false }
-            let converter = context.sourceLocationConverter
-            let start = converter.location(for: decl.memberBlock.leftBrace.positionAfterSkippingLeadingTrivia).line
-            let end = converter.location(for: decl.memberBlock.rightBrace.positionAfterSkippingLeadingTrivia).line
-            return (end - start - 1) >= 50
-        }
-        guard largePublicTypes.count > 1 else { return }
-        for decl in largePublicTypes {
-            context.report(on: decl, message: "Split this file: too many large public types")
         }
     }
 }
@@ -120,6 +94,71 @@ Output (SwiftLint/Xcode compatible):
 /path/to/File.swift:42:5: error: [no-force-try] Force try (try!) is not allowed
 ```
 
+## Rule API
+
+### Rule (no arguments)
+
+Severity is specified per-report in the closure, not on the Rule itself:
+
+```swift
+Rule(id: "rule-id") { file, context in
+    context.report(on: someNode, message: "Description", severity: .warning)
+}
+```
+
+### ParameterizedRule (YAML-configurable arguments)
+
+```swift
+struct ThresholdArgs: Codable, Sendable {
+    var threshold: Int = 50
+}
+
+ParameterizedRule(id: "large-type", defaultArguments: ThresholdArgs()) { file, context, args in
+    // args.threshold is 50 by default, overridable via YAML
+    context.report(on: node, message: "Type too large", severity: .warning)
+}
+```
+
+### Rules with autofix
+
+Rules can provide fix-its using SwiftSyntax's `FixIt` type. When the user runs `--fix`, these are applied automatically:
+
+```swift
+import SwiftDiagnostics
+
+Rule(id: "var-to-let") { file, context in
+    for stmt in file.statements {
+        guard let varDecl = stmt.item.as(VariableDeclSyntax.self) else { continue }
+        let keyword = varDecl.bindingSpecifier
+        guard keyword.tokenKind == .keyword(.var) else { continue }
+        let newKeyword = keyword.with(\.tokenKind, .keyword(.let))
+        context.reportWithFix(
+            on: varDecl,
+            message: "Use let instead of var",
+            severity: .warning,
+            fixIts: [
+                FixIt.replace(
+                    message: SimpleFixItMessage("Replace var with let"),
+                    oldNode: keyword,
+                    newNode: newKeyword,
+                ),
+            ],
+        )
+    }
+}
+```
+
+Rules without fix-its use `context.report()` as before — fully backward compatible.
+
+### RuleSet
+
+```swift
+public let rules = RuleSet {
+    myParameterizedRule
+    Rule(id: "simple") { file, ctx in ... }
+}
+```
+
 ## CLI Usage
 
 ### Linter (user-side executable)
@@ -129,6 +168,7 @@ swift run swift-ast-lint                              # lint current directory
 swift run swift-ast-lint ./Sources                     # lint specific directory
 swift run swift-ast-lint ./Sources ./MyModule           # multiple paths
 swift run swift-ast-lint ./Sources --config custom.yml  # custom config
+swift run swift-ast-lint --fix ./Sources                # apply autofixes
 ```
 
 ### Scaffolding tool
@@ -142,43 +182,35 @@ swiftastlinttool init                                     # interactive mode
 
 ### `.swift-ast-lint.yml`
 
-Optional project-level file path filtering (not rule configuration -- rules are code):
+Optional YAML file for path filtering and per-rule configuration:
 
 ```yaml
+# Project-level path filtering
 included_paths:
   - "Sources/**/*.swift"
 excluded_paths:
   - "**/*Generated.swift"
   - ".build/**"
+
+# Per-rule configuration
+rules:
+  large-type:
+    args:
+      threshold: 30           # Override ParameterizedRule defaults
+    include:
+      - "Sources/**"          # Only apply this rule to Sources/
+    exclude:
+      - "**/*Generated.swift" # Skip generated files for this rule
 ```
 
-### Rule-level filtering
+### Filter priority
 
-```swift
-Rule(
-    id: "sources-only-rule",
-    severity: .warning,
-    include: ["Sources/**"],
-    exclude: ["**/*Test*.swift"]
-) { file, context in
-    // ...
-}
-```
+Filters are applied as an intersection — each level can only narrow, never widen:
 
-### RuleSet-level filtering
+1. **yml** `included_paths` / `excluded_paths` — project-wide file filtering
+2. **Per-rule** `include` / `exclude` in the `rules:` YAML section — per-rule file filtering
 
-```swift
-let rules = RuleSet {
-    // rules...
-}
-.include(["Sources/**"])
-.exclude(["**/*Generated.swift"])
-```
-
-Filter priority (intersection -- each level can only narrow):
-1. yml `included_paths` / `excluded_paths`
-2. RuleSet `.include()` / `.exclude()`
-3. Rule `include` / `exclude`
+Rules not listed in the `rules:` section use no path filtering (apply to all files that pass step 1).
 
 ## Exit Codes
 
