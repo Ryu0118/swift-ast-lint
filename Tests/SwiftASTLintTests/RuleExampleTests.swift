@@ -41,7 +41,6 @@ struct RuleExampleTests {
     }
 
     @Test("no violation with one large public type")
-    @LintActor
     func singleLargeType() {
         let source = "public struct A {\n" + String(repeating: "    var x = 1\n", count: 60) + "}\n"
         let (file, ctx) = makeLintContext(source: source)
@@ -50,7 +49,6 @@ struct RuleExampleTests {
     }
 
     @Test("violation with two large public types")
-    @LintActor
     func twoLargeTypes() {
         let typeA = "public struct A {\n" + String(repeating: "    var x = 1\n", count: 60) + "}\n"
         let typeB = "public class B {\n" + String(repeating: "    var y = 2\n", count: 60) + "}\n"
@@ -60,7 +58,6 @@ struct RuleExampleTests {
     }
 
     @Test("two 4-line public types triggers error with minBodyLines=4")
-    @LintActor
     func twoSmallPublicTypes() {
         // Each type has exactly 4 body lines (var a through var d)
         let source = """
@@ -86,7 +83,6 @@ struct RuleExampleTests {
     }
 
     @Test("one 4-line public + one 3-line public does not trigger with minBodyLines=4")
-    @LintActor
     func oneAboveOneBelow() {
         let source = """
         public struct Foo {
@@ -108,7 +104,6 @@ struct RuleExampleTests {
     }
 
     @Test("package access level types also trigger the rule")
-    @LintActor
     func packageAccessLevel() {
         let source = """
         package struct Foo {
@@ -131,7 +126,6 @@ struct RuleExampleTests {
     }
 
     @Test("internal types are ignored even if large")
-    @LintActor
     func internalTypesIgnored() {
         let source = """
         struct Foo {
@@ -200,7 +194,6 @@ struct RuleExampleTests {
     }
 
     @Test("no violation at depth 3")
-    @LintActor
     func nestingOk() {
         let source = "func f() {\n    if true {\n        for _ in [1] {\n            if true { let _ = 1 }\n        }\n    }\n}"
         let (file, ctx) = makeLintContext(source: source)
@@ -209,7 +202,6 @@ struct RuleExampleTests {
     }
 
     @Test("violation at depth 4")
-    @LintActor
     func nestingViolation() {
         let source = "func f() {\n    if true {\n        for _ in [1] {\n            if true {\n                for _ in [1] { let _ = 1 }\n            }\n        }\n    }\n}"
         let (file, ctx) = makeLintContext(source: source)

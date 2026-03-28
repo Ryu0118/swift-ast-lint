@@ -4,7 +4,6 @@ import SwiftSyntax
 
 public extension RuleProtocol {
     /// Lints a source string and returns diagnostics. Convenience for testing rules.
-    @LintActor
     func lint(source: String, fileName: String = "test.swift", argsYAML: String? = nil) -> [Diagnostic] {
         let file = Parser.parse(source: source)
         let converter = SourceLocationConverter(fileName: fileName, tree: file)
@@ -14,7 +13,6 @@ public extension RuleProtocol {
     }
 
     /// Lints a source string, applies any fix-its, and returns both diagnostics and the fixed source.
-    @LintActor
     func lintAndFix(
         source: String,
         fileName: String = "test.swift",

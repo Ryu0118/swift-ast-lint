@@ -3,7 +3,6 @@ import SwiftDiagnostics
 import SwiftParser
 import SwiftSyntax
 
-@LintActor
 func makeLintContext(
     source: String,
     filePath: String = "test.swift",
