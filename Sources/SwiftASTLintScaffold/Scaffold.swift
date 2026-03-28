@@ -1,7 +1,11 @@
 import FileManagerProtocol
 import Foundation
 import Subprocess
-import System
+#if canImport(System)
+    import System
+#else
+    import SystemPackage
+#endif
 
 /// Generates a new Swift Package configured as a linter project.
 public struct Scaffold {

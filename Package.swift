@@ -16,6 +16,7 @@ let package = Package(
         .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.1"),
         .package(url: "https://github.com/Ryu0118/FileManagerProtocol.git", from: "0.1.0"),
         .package(url: "https://github.com/swiftlang/swift-subprocess.git", from: "0.4.0"),
+        .package(url: "https://github.com/apple/swift-system.git", from: "1.5.0"),
         .package(url: "https://github.com/mtj0928/swift-async-operations.git", from: "0.5.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.2"),
     ],
@@ -46,6 +47,7 @@ let package = Package(
             name: "SwiftASTLintScaffold",
             dependencies: [
                 .product(name: "Subprocess", package: "swift-subprocess"),
+                .product(name: "SystemPackage", package: "swift-system"),
                 .product(name: "FileManagerProtocol", package: "FileManagerProtocol"),
             ],
         ),
