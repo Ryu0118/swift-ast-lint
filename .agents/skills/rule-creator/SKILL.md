@@ -28,10 +28,10 @@ Check the working directory for `Sources/Rules/Rules.swift` and a `Package.swift
 - **Found** — proceed to Step 2.
 - **Not found** — ask the user before scaffolding:
   1. Package name (default: MyLinter)
-  2. Output path (default: `./<name>`)
+  2. Output path (default: `./<name>` — uses the package name from question 1)
   3. macOS deployment target (e.g. v13, v14, v15 — default: v15)
 
-**Wait for answers before proceeding.** Then scaffold with explicit flags:
+**Wait for answers before proceeding.** When the user answers the path question with the same value as the package name, treat it as `./<that-name>`. The `--path` flag must always be the **directory path**, and `--name` must always be the **package name**. Example: if name is "ASTLinter" and path answer is "ASTLinter", run `--path ./ASTLinter --name ASTLinter`.
 
 ```bash
 swiftastlinttool init --path <path> --name <name>
