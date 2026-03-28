@@ -7,12 +7,16 @@ Minimal SwiftSyntax AST-based linting kit. Users write lint rules in pure Swift,
 Three modules: **SwiftASTLint** (core library), **SwiftASTLintScaffold** (package generator), **swift-ast-lint-tool** (CLI).
 
 SwiftASTLint internal structure:
-- `Linter` — Public CLI entry point (`Linter.lint(rules)`). AsyncParsableCommand thin wrapper. Bootstraps LoggingSystem.
-- `LintEngine` — Internal lint execution (file collection, filtering, rule application). Unit-testable without ArgumentParser.
+- `Linter` — Public CLI entry point (`Linter.lint(rules)`). AsyncParsableCommand thin wrapper. Bootstraps LoggingSystem. `--fix` flag for autofix mode.
+- `LintEngine` — Internal lint execution (file collection, filtering, rule application). Unit-testable without ArgumentParser. Fix mode: `fixAndOutputDiagnostics()` collects FixIts, applies via `FixApplier`, writes back.
+- `FixApplier` — Applies SwiftSyntax `FixIt` edits to source text. Uses `FixIt.edits` (public API) → `SourceEdit` → UTF-8 byte replacement. Descending offset order, overlap skipping.
+- `LintContext` — `report(on:message:severity:)` for unfixable, `reportWithFix(on:message:severity:fixIts:)` for fixable violations. FixIts use SwiftDiagnostics `FixIt`/`FixIt.Change` directly.
+- `SimpleFixItMessage` — Public `FixItMessage` implementation for rule authors.
 - `ConfigurationLoader` — YAML config via `Decodable`. Returns `nil` if file missing.
 - `@LintActor` global actor isolates `LintContext` and Rule closures. No `@unchecked Sendable`, no `await` in Rule closures.
 - Intersection filtering: yml > RuleSet > Rule. Each level can only narrow, never widen.
 - Exit code 2 for lint errors. Compatible with Claude Code hooks.
+- Depends on `SwiftDiagnostics` (from swift-syntax) for `FixIt`, `FixIt.Change`, `SourceEdit`. Does NOT use `@_spi(FixItApplier)` — fix application is self-contained in `FixApplier`.
 
 ## Development
 

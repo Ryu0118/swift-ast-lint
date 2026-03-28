@@ -24,6 +24,40 @@ Rule(id: "rule-id") { file, context in
 }
 ```
 
+### Rule with autofix
+
+```swift
+import SwiftDiagnostics
+
+Rule(id: "var-to-let") { file, context in
+    for stmt in file.statements {
+        guard let varDecl = stmt.item.as(VariableDeclSyntax.self) else { continue }
+        let keyword = varDecl.bindingSpecifier
+        guard keyword.tokenKind == .keyword(.var) else { continue }
+        let newKeyword = keyword.with(\.tokenKind, .keyword(.let))
+        context.reportWithFix(
+            on: varDecl,
+            message: "Use let instead of var",
+            severity: .warning,
+            fixIts: [
+                FixIt.replace(
+                    message: SimpleFixItMessage("Replace var with let"),
+                    oldNode: keyword,
+                    newNode: newKeyword,
+                ),
+            ],
+        )
+    }
+}
+```
+
+**Fix API:**
+- `context.reportWithFix(on:message:severity:fixIts:)` — reports + attaches fix-its
+- `FixIt.replace(message:oldNode:newNode:)` — convenience for node replacement
+- `FixIt(message:changes:)` — multi-change: `.replace`, `.replaceLeadingTrivia`, `.replaceTrailingTrivia`, `.replaceText`
+- `SimpleFixItMessage("description")` — simple FixItMessage implementation
+- Rules without fix-its use `context.report()` as before (fully backward compatible)
+
 ### ParameterizedRule (YAML-configurable arguments)
 
 ```swift
@@ -81,7 +115,7 @@ Rules not listed use defaults. No need to declare every rule.
 
 ## Testing with SwiftASTLintTestSupport
 
-Import `SwiftASTLintTestSupport` for `rule.lint(source:)` and `ruleSet.find(id:)`.
+Import `SwiftASTLintTestSupport` for `rule.lint(source:)`, `rule.lintAndFix(source:)`, and `ruleSet.find(id:)`.
 
 ```swift
 @testable import Rules
@@ -121,6 +155,26 @@ init() throws {
 }
 ```
 
+### Testing fix-its with `lintAndFix`
+
+```swift
+@Test("fix replaces var with let")
+@LintActor
+func fixVarToLet() {
+    let (diagnostics, fixedSource) = myRule.lintAndFix(source: "var x = 1\n")
+    #expect(diagnostics.count == 1)
+    #expect(diagnostics[0].isFixable)
+    #expect(fixedSource == "let x = 1\n")
+}
+
+@Test("non-fixable violation returns nil fixedSource")
+@LintActor
+func nonFixable() {
+    let (_, fixedSource) = myRule.lintAndFix(source: "let x = 1\n")
+    #expect(fixedSource == nil)
+}
+```
+
 ### Test checklist
 
 - Violation detected for target pattern
@@ -129,3 +183,5 @@ init() throws {
 - YAML args override (for ParameterizedRule)
 - Correct severity (warning vs error)
 - Parameterized tests (`@Test(arguments:)`) for multiple type kinds
+- Fix-it produces correct output (for fixable rules)
+- Non-fixable cases return nil fixedSource
