@@ -54,6 +54,50 @@ struct DiagnosticTests {
         #expect(!(diag1 < diag2))
         #expect(!(diag2 < diag1))
     }
+
+    // MARK: - FixIt-related
+
+    @Test("isFixable is false when fixIts is empty")
+    func isFixableFalseByDefault() {
+        let diagnostic = Diagnostic(ruleID: "r", severity: .warning, message: "m", filePath: "/a.swift", line: 1, column: 1)
+        #expect(!diagnostic.isFixable)
+        #expect(diagnostic.fixIts.isEmpty)
+    }
+
+    @Test("formatted output includes [fixable] when fixIts present")
+    func formattedWithFixable() {
+        let fixIt = makeStubFixIt()
+        let diagnostic = Diagnostic(ruleID: "r", severity: .warning, message: "m", filePath: "/a.swift", line: 1, column: 1, fixIts: [fixIt])
+        #expect(diagnostic.isFixable)
+        #expect(diagnostic.formatted == "/a.swift:1:1: warning: [r] m [fixable]")
+    }
+
+    @Test("formatted output omits [fixable] when no fixIts")
+    func formattedWithoutFixable() {
+        let diagnostic = Diagnostic(ruleID: "r", severity: .warning, message: "m", filePath: "/a.swift", line: 1, column: 1)
+        #expect(!diagnostic.formatted.contains("[fixable]"))
+    }
+
+    @Test("Equatable: fixable and non-fixable diagnostics are not equal")
+    func equatableFixableVsNot() {
+        let fixIt = makeStubFixIt()
+        let fixable = Diagnostic(ruleID: "r", severity: .warning, message: "m", filePath: "/a.swift", line: 1, column: 1, fixIts: [fixIt])
+        let notFixable = Diagnostic(ruleID: "r", severity: .warning, message: "m", filePath: "/a.swift", line: 1, column: 1)
+        #expect(fixable != notFixable)
+    }
+
+    @Test("Equatable: two non-fixable diagnostics with same fields are equal")
+    func equatableNonFixable() {
+        let diag1 = Diagnostic(ruleID: "r", severity: .warning, message: "m", filePath: "/a.swift", line: 1, column: 1)
+        let diag2 = Diagnostic(ruleID: "r", severity: .warning, message: "m", filePath: "/a.swift", line: 1, column: 1)
+        #expect(diag1 == diag2)
+    }
+
+    @Test("init default fixIts is empty")
+    func initDefault() {
+        let diagnostic = Diagnostic(ruleID: "r", severity: .warning, message: "m", filePath: "/a.swift", line: 1, column: 1)
+        #expect(diagnostic.fixIts.isEmpty)
+    }
 }
 
 // swiftlint:enable line_length
