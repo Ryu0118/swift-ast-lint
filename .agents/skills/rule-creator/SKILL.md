@@ -37,11 +37,7 @@ Check the working directory for `Sources/Rules/Rules.swift` and a `Package.swift
 swiftastlinttool init --path <path> --name <name>
 ```
 
-Patch `Package.swift` if macOS version differs from v15. After scaffolding, delete the auto-generated entry point that conflicts with `main.swift`:
-
-```bash
-rm -f <path>/Sources/swift-ast-lint/swift-ast-lint.swift
-```
+Patch `Package.swift` if macOS version differs from v15.
 
 If `swiftastlinttool` is not installed:
 
