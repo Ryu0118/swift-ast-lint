@@ -7,3 +7,6 @@ rules:
     args:
       warning_lines: 50
       error_lines: 100
+  deep-nesting:
+    args:
+      max_depth: 3
