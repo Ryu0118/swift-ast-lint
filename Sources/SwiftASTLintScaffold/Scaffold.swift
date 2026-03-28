@@ -40,10 +40,15 @@ public struct Scaffold {
 
         let packageSwiftPath = "\(path)/Package.swift"
         let packageContent = try String(contentsOfFile: packageSwiftPath, encoding: .utf8)
-        let patched = packageContent.replacingOccurrences(
-            of: "name: \"\(name)\",",
-            with: "name: \"\(name)\",\n    platforms: [.macOS(.v15)],",
-        )
+        // swift package init may produce `name: "X"` (no comma) or `name: "X",` (with comma)
+        let searchWithComma = "name: \"\(name)\","
+        let searchWithoutComma = "name: \"\(name)\""
+        let replacement = "name: \"\(name)\",\n    platforms: [.macOS(.v15)],"
+        let patched: String = if packageContent.contains(searchWithComma) {
+            packageContent.replacingOccurrences(of: searchWithComma, with: replacement)
+        } else {
+            packageContent.replacingOccurrences(of: searchWithoutComma, with: replacement)
+        }
         try writeFile(content: patched, atPath: packageSwiftPath)
     }
 

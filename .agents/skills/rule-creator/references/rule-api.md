@@ -1,9 +1,22 @@
 # Rule API Reference
 
+## Types
+
+- `Rule` — lint rule with no configurable arguments
+- `ParameterizedRule` — lint rule with YAML-configurable arguments
+- `LintContext` — passed to rule closures; accumulates diagnostics. **This is a concrete class, not a protocol.** Use `LintContext` directly, never invent types like `LintRuleContext`.
+- `Severity` — `.warning` or `.error`
+- `RuleSet` — result builder for composing rules
+- `SimpleFixItMessage` — `FixItMessage` implementation for rule authors
+
 ## Rule (no arguments)
+
+Closure signature: `(SourceFileSyntax, LintContext) -> Void`
 
 ```swift
 Rule(id: "rule-id") { file, context in
+    // file: SourceFileSyntax — the parsed AST
+    // context: LintContext — call context.report() or context.reportWithFix()
     context.report(on: someNode, message: "Description", severity: .warning)
 }
 ```
@@ -45,6 +58,8 @@ Rule(id: "var-to-let") { file, context in
 - `context.report()` — unfixable violations (backward compatible)
 
 ## ParameterizedRule (YAML-configurable arguments)
+
+Closure signature: `(SourceFileSyntax, LintContext, Args) -> Void`
 
 ```swift
 struct MyArgs: Codable, Sendable {
