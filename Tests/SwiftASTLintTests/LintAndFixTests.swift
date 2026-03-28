@@ -51,14 +51,43 @@ struct LintAndFixTests {
         #expect(!diagnostics[1].isFixable)
         #expect(fixedSource == "let x = 1\nlet y = 2\n")
     }
+
+    @Test("ParameterizedRule with fix applies correctly via lintAndFix")
+    @LintActor
+    func parameterizedRuleFix() {
+        let rule = ParameterizedRule(
+            id: "param-var-to-let",
+            defaultArguments: TargetKeywordArgs(targetKeyword: "var"),
+        ) { file, ctx, args in
+            reportMatchingKeyword(file: file, context: ctx, keyword: args.targetKeyword)
+        }
+
+        let (diagnostics, fixedSource) = rule.lintAndFix(source: "var x = 1\n")
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].isFixable)
+        #expect(fixedSource == "let x = 1\n")
+    }
+}
+
+private struct TargetKeywordArgs: Codable {
+    let targetKeyword: String
 }
 
 @LintActor
 private func reportVarToLet(file: SourceFileSyntax, context: LintContext) {
+    reportMatchingKeyword(file: file, context: context, keyword: "var")
+}
+
+@LintActor
+private func reportMatchingKeyword(
+    file: SourceFileSyntax,
+    context: LintContext,
+    keyword targetText: String,
+) {
     for stmt in file.statements {
         guard let varDecl = stmt.item.as(VariableDeclSyntax.self) else { continue }
         let keyword = varDecl.bindingSpecifier
-        guard keyword.tokenKind == .keyword(.var) else { continue }
+        guard keyword.text == targetText else { continue }
         let newKeyword = keyword.with(\.tokenKind, .keyword(.let))
         context.reportWithFix(
             on: varDecl,
