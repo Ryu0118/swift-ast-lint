@@ -7,7 +7,6 @@ import Testing
 @Suite("LintContext reportWithFix creates fixable diagnostics with associated FixIts")
 struct LintContextFixTests {
     @Test("reportWithFix creates diagnostic with isFixable true")
-    @LintActor
     func reportWithFixIsFixable() throws {
         let source = "var x = 1\n"
         let (sourceFile, context) = makeLintContext(source: source, ruleID: "test-rule")
@@ -36,7 +35,6 @@ struct LintContextFixTests {
     }
 
     @Test("report without fix creates diagnostic with isFixable false")
-    @LintActor
     func reportWithoutFix() throws {
         let source = "let x = 1\n"
         let (sourceFile, context) = makeLintContext(source: source)
@@ -50,7 +48,6 @@ struct LintContextFixTests {
     }
 
     @Test("mixed report and reportWithFix accumulate correctly")
-    @LintActor
     func mixedReports() {
         let source = "var x = 1\nlet y = 2\n"
         let (sourceFile, context) = makeLintContext(source: source, ruleID: "mixed")
@@ -83,7 +80,6 @@ struct LintContextFixTests {
     }
 
     @Test("formatted output includes [fixable] tag")
-    @LintActor
     func formattedIncludesFixable() throws {
         let source = "var x = 1\n"
         let (sourceFile, context) = makeLintContext(source: source, filePath: "/a.swift", ruleID: "r")

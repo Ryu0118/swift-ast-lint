@@ -6,12 +6,11 @@ import Testing
 @Suite(
     """
     LintContext diagnostic collection: \
-    report accumulation, explicit severity, and file path tracking via @LintActor
+    report accumulation, explicit severity, and file path tracking
     """,
 )
 struct LintContextTests {
     @Test("report with explicit severity")
-    @LintActor
     func reportDefault() throws {
         let (sourceFile, context) = makeLintContext(
             source: "let x = 1\n",
@@ -29,7 +28,6 @@ struct LintContextTests {
     }
 
     @Test("report severity is stored correctly")
-    @LintActor
     func reportSeverity() throws {
         let (sourceFile, context) = makeLintContext(
             source: "let x = 1\n",
@@ -42,7 +40,6 @@ struct LintContextTests {
     }
 
     @Test("multiple reports accumulate")
-    @LintActor
     func multipleReports() {
         let (sourceFile, context) = makeLintContext(
             source: "let x = 1\nlet y = 2\n",
@@ -56,7 +53,6 @@ struct LintContextTests {
     }
 
     @Test("filePath is preserved")
-    @LintActor
     func filePath() {
         let (_, context) = makeLintContext(
             source: "let x = 1\n",
