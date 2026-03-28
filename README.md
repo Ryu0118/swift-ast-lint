@@ -12,11 +12,11 @@ Create project-specific lint rules programmatically in pure Swift. No YAML, no r
 
 SwiftLint is great for common coding style checks, but falls short when you need:
 
-- **Project-specific rules** — Enforce your team's architecture conventions and structural patterns that no generic linter covers.
+- **Project-specific rules** — Write rules in SwiftSyntax to enforce your team's architecture conventions and structural patterns that no generic linter covers.
 - **Complex structural checks** — "Every public class over 50 lines must be in its own file" or "No force-try in production code" — rules that require understanding the code structure, not just matching text.
 - **AST-level precision** — SwiftLint's custom rules are regex-based. Regex can't distinguish a function call from a comment, a type name from a variable. AST can.
 
-**Why now?** With AI coding assistants, writing SwiftSyntax rules has become dramatically easier. Describe the pattern you want to catch in natural language, and your AI writes the rule. What used to require deep SwiftSyntax expertise is now a simple prompt away.
+With AI coding assistants, writing SwiftSyntax rules has become dramatically easier. Describe the pattern you want to catch in natural language, and your AI writes the rule. What used to require deep SwiftSyntax expertise is now a simple prompt away.
 
 ## How It Works
 
@@ -257,14 +257,6 @@ Rules are filtered in this order:
 3. **Per-rule `include` / `exclude`** in the `rules:` YAML section — per-rule file filtering
 
 Each level can only narrow, never widen. Rules not listed in `rules:` apply to all files that pass step 2.
-
-## Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| `0` | No errors (warnings are OK) |
-| `1` | Runtime error (file I/O, config parse failure) |
-| `2` | Lint errors found (Claude Code hooks compatible) |
 
 ## License
 
