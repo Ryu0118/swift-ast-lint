@@ -14,6 +14,8 @@ package struct LintEngine {
         self.fileCollector = fileCollector
     }
 
+    // MARK: - Lint
+
     package func lintAndOutputDiagnostics(paths: [String]) async -> LintResult {
         let result = await lint(paths: paths)
         for diagnostic in result.diagnostics {
@@ -32,6 +34,27 @@ package struct LintEngine {
         return LintResult(diagnostics: allDiagnostics.sorted())
     }
 
+    // MARK: - Fix
+
+    package func fixAndOutputDiagnostics(paths: [String]) async -> FixResult {
+        let roots = resolveRoots(cliPaths: paths)
+        var totalFixed = 0
+        var allRemaining: [Diagnostic] = []
+
+        for (scanRoot, filterBase) in roots {
+            let (fixed, remaining) = await fixFiles(scanRoot: scanRoot, filterBase: filterBase)
+            totalFixed += fixed
+            allRemaining.append(contentsOf: remaining)
+        }
+
+        let sorted = allRemaining.sorted()
+        for diagnostic in sorted {
+            logger.info("\(diagnostic.formatted)")
+        }
+
+        return FixResult(fixedCount: totalFixed, remainingDiagnostics: sorted)
+    }
+
     // MARK: - Private
 
     /// Resolves scan roots and filter bases from CLI paths and config (SwiftLint-compatible).
@@ -46,45 +69,25 @@ package struct LintEngine {
         return resolvedPaths.map { ($0, $0) }
     }
 
-    @LintActor
-    private func lintFiles(scanRoot: String, filterBase: String) async -> LintResult {
-        let allSwiftFiles: [String]
-        do {
-            allSwiftFiles = try fileCollector.collectSwiftFiles(rootPath: scanRoot)
-        } catch {
-            logger.error("Failed to collect files at \(scanRoot): \(error)")
-            return LintResult(diagnostics: [])
-        }
-
-        let filtered = fileCollector.applyFilters(
+    private func collectFilteredFiles(
+        scanRoot: String,
+        filterBase: String,
+    ) throws -> [String] {
+        let allSwiftFiles = try fileCollector.collectSwiftFiles(rootPath: scanRoot)
+        return fileCollector.applyFilters(
             files: allSwiftFiles,
             include: config?.includedPaths ?? [],
             exclude: config?.excludedPaths ?? [],
             rootPath: filterBase,
         )
-
-        let fileDiagnostics = await filtered.asyncMap(
-            numberOfConcurrentTasks: 10,
-        ) { filePath -> [Diagnostic] in
-            await lintSingleFile(filePath: filePath, filterBase: filterBase)
-        }
-
-        return LintResult(diagnostics: Array(fileDiagnostics.joined()).sorted())
     }
 
     @LintActor
-    private func lintSingleFile(
+    private func runRules(
         filePath: String,
+        source: String,
         filterBase: String,
     ) -> [Diagnostic] {
-        let source: String
-        do {
-            source = try String(contentsOfFile: filePath, encoding: .utf8)
-        } catch {
-            logger.warning("Could not read \(filePath): \(error)")
-            return []
-        }
-
         let sourceFile = Parser.parse(source: source)
         let converter = SourceLocationConverter(fileName: filePath, tree: sourceFile)
         let relativePath = FileCollector.makeRelative(filePath, to: filterBase)
@@ -107,5 +110,98 @@ package struct LintEngine {
             diagnostics.append(contentsOf: context.collectDiagnostics())
         }
         return diagnostics
+    }
+
+    // MARK: - Lint (private)
+
+    @LintActor
+    private func lintFiles(scanRoot: String, filterBase: String) async -> LintResult {
+        let filtered: [String]
+        do {
+            filtered = try collectFilteredFiles(scanRoot: scanRoot, filterBase: filterBase)
+        } catch {
+            logger.error("Failed to collect files at \(scanRoot): \(error)")
+            return LintResult(diagnostics: [])
+        }
+
+        let fileDiagnostics = await filtered.asyncMap(
+            numberOfConcurrentTasks: 10,
+        ) { filePath -> [Diagnostic] in
+            await lintSingleFile(filePath: filePath, filterBase: filterBase)
+        }
+
+        return LintResult(diagnostics: Array(fileDiagnostics.joined()).sorted())
+    }
+
+    @LintActor
+    private func lintSingleFile(filePath: String, filterBase: String) -> [Diagnostic] {
+        let source: String
+        do {
+            source = try String(contentsOfFile: filePath, encoding: .utf8)
+        } catch {
+            logger.warning("Could not read \(filePath): \(error)")
+            return []
+        }
+        return runRules(filePath: filePath, source: source, filterBase: filterBase)
+    }
+
+    // MARK: - Fix (private)
+
+    @LintActor
+    private func fixFiles(
+        scanRoot: String,
+        filterBase: String,
+    ) async -> (fixedCount: Int, remaining: [Diagnostic]) {
+        let filtered: [String]
+        do {
+            filtered = try collectFilteredFiles(scanRoot: scanRoot, filterBase: filterBase)
+        } catch {
+            logger.error("Failed to collect files at \(scanRoot): \(error)")
+            return (0, [])
+        }
+
+        var totalFixed = 0
+        var allRemaining: [Diagnostic] = []
+
+        for filePath in filtered {
+            let (fixed, remaining) = fixSingleFile(filePath: filePath, filterBase: filterBase)
+            totalFixed += fixed
+            allRemaining.append(contentsOf: remaining)
+        }
+
+        return (totalFixed, allRemaining)
+    }
+
+    @LintActor
+    private func fixSingleFile(
+        filePath: String,
+        filterBase: String,
+    ) -> (fixedCount: Int, remaining: [Diagnostic]) {
+        let source: String
+        do {
+            source = try String(contentsOfFile: filePath, encoding: .utf8)
+        } catch {
+            logger.warning("Could not read \(filePath): \(error)")
+            return (0, [])
+        }
+
+        let diagnostics = runRules(filePath: filePath, source: source, filterBase: filterBase)
+        let fixIts = diagnostics.flatMap(\.fixIts)
+
+        if fixIts.isEmpty {
+            return (0, diagnostics)
+        }
+
+        let (fixedSource, appliedCount) = FixApplier.applyFixes(fixIts: fixIts, to: source)
+
+        do {
+            try fixedSource.write(toFile: filePath, atomically: true, encoding: .utf8)
+        } catch {
+            logger.error("Could not write fixes to \(filePath): \(error)")
+            return (0, diagnostics)
+        }
+
+        let remaining = diagnostics.filter { !$0.isFixable }
+        return (appliedCount, remaining)
     }
 }

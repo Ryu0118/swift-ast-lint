@@ -10,6 +10,14 @@ public struct LintResult: Sendable {
     }
 }
 
+package struct FixResult {
+    let fixedCount: Int
+    let remainingDiagnostics: [Diagnostic]
+    var hasErrors: Bool {
+        remainingDiagnostics.contains { $0.severity == .error }
+    }
+}
+
 @available(macOS 10.15, macCatalyst 13, iOS 13, tvOS 13, watchOS 6, *)
 public struct Linter: AsyncParsableCommand {
     public static let configuration = CommandConfiguration(
@@ -22,6 +30,9 @@ public struct Linter: AsyncParsableCommand {
 
     @Option(name: .long, help: "Path to config file")
     var config: String = SwiftASTLintConstants.defaultConfigFileName
+
+    @Flag(name: .long, help: "Apply autofixes for fixable violations")
+    var fix: Bool = false
 
     private static let storedRules = Mutex<RuleSet?>(nil)
 
@@ -54,10 +65,20 @@ public struct Linter: AsyncParsableCommand {
 
         let loadedConfig = loadConfig()
         let engine = LintEngine(rules: rules, config: loadedConfig)
-        let result = await engine.lintAndOutputDiagnostics(paths: paths)
 
-        if result.hasErrors {
-            throw ExitCode(2)
+        if fix {
+            let result = await engine.fixAndOutputDiagnostics(paths: paths)
+            if result.fixedCount > 0 {
+                logger.info("Fixed \(result.fixedCount) violation(s)")
+            }
+            if result.hasErrors {
+                throw ExitCode(2)
+            }
+        } else {
+            let result = await engine.lintAndOutputDiagnostics(paths: paths)
+            if result.hasErrors {
+                throw ExitCode(2)
+            }
         }
     }
 
