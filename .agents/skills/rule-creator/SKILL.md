@@ -66,7 +66,7 @@ If the user already described the rule clearly, skip questions and start writing
 3. Write tests in `Tests/RulesTests/`
 4. Run `swift test` to verify
 
-For API reference, see [references/rule-api.md](references/rule-api.md).
+For API reference, see [references/rule-api.md](references/rule-api.md). For test design principles and examples, see [references/testing-guide.md](references/testing-guide.md).
 
 ### Step 4: YAML configuration
 

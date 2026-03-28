@@ -7,7 +7,12 @@
           {
             "type": "command",
             "command": "cat | sh .claude/hooks/check-architecture.sh"
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
           {
             "type": "command",
             "command": "cat | sh .claude/hooks/protect-skill-files.sh"
