@@ -2,7 +2,6 @@ import SwiftDiagnostics
 import SwiftSyntax
 
 /// Accumulates diagnostics reported by a single rule against a single file.
-@LintActor
 public final class LintContext {
     /// Absolute path of the file being linted.
     public nonisolated let filePath: String

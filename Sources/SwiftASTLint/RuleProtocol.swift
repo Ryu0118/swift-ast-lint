@@ -19,12 +19,11 @@ public protocol RuleProtocol: Sendable {
     var defaultArguments: Arguments { get }
 
     /// Checks a source file and reports diagnostics via the context.
-    @LintActor func check(_ file: SourceFileSyntax, _ context: LintContext, _ arguments: Arguments)
+    func check(_ file: SourceFileSyntax, _ context: LintContext, _ arguments: Arguments)
 }
 
 public extension RuleProtocol {
     /// Executes this rule, resolving arguments from raw YAML or falling back to defaults.
-    @LintActor
     func execute(file: SourceFileSyntax, context: LintContext, argsYAML: String?) {
         let arguments: Arguments
         if let argsYAML {

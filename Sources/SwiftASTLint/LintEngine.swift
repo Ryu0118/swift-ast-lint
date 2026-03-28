@@ -82,7 +82,6 @@ package struct LintEngine {
         )
     }
 
-    @LintActor
     private func runRules(
         filePath: String,
         source: String,
@@ -116,7 +115,6 @@ package struct LintEngine {
 
     // MARK: - Lint (private)
 
-    @LintActor
     private func lintFiles(scanRoot: String, filterBase: String) async -> LintResult {
         let filtered: [String]
         do {
@@ -135,7 +133,6 @@ package struct LintEngine {
         return LintResult(diagnostics: Array(fileDiagnostics.joined()).sorted())
     }
 
-    @LintActor
     private func lintSingleFile(filePath: String, filterBase: String) -> [Diagnostic] {
         let source: String
         do {
@@ -149,7 +146,6 @@ package struct LintEngine {
 
     // MARK: - Fix (private)
 
-    @LintActor
     private func fixFiles(
         scanRoot: String,
         filterBase: String,
@@ -174,7 +170,6 @@ package struct LintEngine {
         return (totalFixed, allRemaining)
     }
 
-    @LintActor
     private func fixSingleFile(
         filePath: String,
         filterBase: String,
