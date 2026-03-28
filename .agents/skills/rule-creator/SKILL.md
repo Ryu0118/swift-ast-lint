@@ -37,7 +37,7 @@ Check the working directory for `Sources/Rules/Rules.swift` and a `Package.swift
 swiftastlinttool init --path <path> --name <name>
 ```
 
-Patch `Package.swift` if macOS version differs from v15.
+The scaffold adds `platforms: [.macOS(.v15)]` automatically. If the user chose a different macOS version (e.g. v13, v14), patch `Package.swift` to replace `.v15` with the chosen version.
 
 If `swiftastlinttool` is not installed:
 
