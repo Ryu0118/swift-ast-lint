@@ -6,4 +6,5 @@ public let rules = RuleSet {
     singleLargeTypePerFileRule
     deepNestingRule
     preferStringRawValueEnumRule
+    requireDocCommentRule
 }
