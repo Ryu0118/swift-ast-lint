@@ -14,7 +14,7 @@ SwiftASTLint internal structure:
 - `SimpleFixItMessage` — Public `FixItMessage` implementation for rule authors.
 - `ConfigurationLoader` — YAML config via `Decodable`. Returns `nil` if file missing.
 - Intersection filtering: disabled_rules > yml paths > per-rule paths. Each level can only narrow, never widen.
-- Exit code 2 for lint errors. Compatible with Claude Code hooks.
+- **Claude Code hook integration**: The CLI outputs plain text, not JSON. PostToolUse hooks require exit 0 + JSON stdout (`{"decision":"block","reason":"..."}`) — a wrapper script is needed.
 - Depends on `SwiftDiagnostics` (from swift-syntax) for `FixIt`, `FixIt.Change`, `SourceEdit`. Does NOT use `@_spi(FixItApplier)` — fix application is self-contained in `FixApplier`.
 
 ## Development
