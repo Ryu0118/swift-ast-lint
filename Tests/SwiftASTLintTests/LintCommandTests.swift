@@ -299,14 +299,18 @@ struct LintEnginePathResolutionTests {
             try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
             try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
 
+            // excluded_paths "Tests/**" is relative to config rootDirectory, not CLI path.
+            // CLI scans the whole project, but Tests/ is excluded via config root-relative glob.
             let config = Configuration(excludedPaths: ["Tests/**"], rootDirectory: root)
             let rules = RuleSet {
                 Rule(id: "all") { file, ctx in
                     ctx.report(on: file, message: "found", severity: .warning)
                 }
             }
+            // Use a CLI path different from config.rootDirectory to prove
+            // excluded_paths resolves relative to config, not the CLI path.
             let linter = LintEngine(rules: rules, config: config)
-            let result = await linter.lint(paths: [root])
+            let result = await linter.lint(paths: ["\(root)/Sources", "\(root)/Tests"])
             #expect(result.diagnostics.count == 1)
             #expect(result.diagnostics[0].filePath.contains("Sources"))
         }
