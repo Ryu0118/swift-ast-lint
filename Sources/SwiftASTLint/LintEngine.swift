@@ -57,11 +57,13 @@ package struct LintEngine {
 
     // MARK: - Private
 
-    /// Resolves scan roots and filter bases from CLI paths and config (SwiftLint-compatible).
+    /// Resolves scan roots and filter bases from CLI paths and config.
+    ///
+    /// - CLI paths always determine scan roots (what directories to walk).
+    /// - `filterBase` is always `config.rootDirectory` when a config exists,
+    ///   so that `included_paths` / `excluded_paths` globs resolve relative to
+    ///   the config file location regardless of the CLI path.
     private func resolveRoots(cliPaths: [String]) -> [(scanRoot: String, filterBase: String)] {
-        if let config, !config.includedPaths.isEmpty {
-            return [(config.rootDirectory, config.rootDirectory)]
-        }
         let resolvedPaths = cliPaths.map { URL(filePath: $0).standardized.path(percentEncoded: false) }
         if let config {
             return resolvedPaths.map { ($0, config.rootDirectory) }

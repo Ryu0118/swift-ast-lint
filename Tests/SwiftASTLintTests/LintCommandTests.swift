@@ -235,11 +235,12 @@ struct LinterTests {
             #expect(result.diagnostics[0].filePath.contains("Core/a.swift"))
         }
     }
+}
 
-    // MARK: - SwiftLint-compatible path resolution
-
-    @Test("included_paths overrides CLI paths (SwiftLint behavior)")
-    func configIncludedOverridesCLIPaths() async throws {
+@Suite("LintEngine path resolution: CLI paths and config paths interact correctly")
+struct LintEnginePathResolutionTests {
+    @Test("included_paths filters within CLI paths, does not override them")
+    func includedPathsFiltersWithinCLIPaths() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
             let root = dir.path(percentEncoded: false)
             let fileManager = FileManager.default
@@ -255,9 +256,33 @@ struct LinterTests {
                     ctx.report(on: file, message: "found", severity: .warning)
                 }
             }
-            // Pass Tests/ as CLI path, but config includes only Sources/ — CLI path should be ignored
+            // CLI path is Tests/ but included_paths only matches Sources/** — no files should match
             let linter = LintEngine(rules: rules, config: config)
             let result = await linter.lint(paths: ["\(root)/Tests"])
+            #expect(result.diagnostics.isEmpty)
+        }
+    }
+
+    @Test("included_paths intersects with CLI paths to narrow scope")
+    func includedPathsIntersectsWithCLIPaths() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Sources"), withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: dir.appendingPathComponent("Tests"), withIntermediateDirectories: true)
+
+            try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
+            try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
+
+            let config = Configuration(includedPaths: ["Sources/**"], rootDirectory: root)
+            let rules = RuleSet {
+                Rule(id: "all") { file, ctx in
+                    ctx.report(on: file, message: "found", severity: .warning)
+                }
+            }
+            // CLI path is Sources/ and included_paths is Sources/** — should match
+            let linter = LintEngine(rules: rules, config: config)
+            let result = await linter.lint(paths: ["\(root)/Sources"])
             #expect(result.diagnostics.count == 1)
             #expect(result.diagnostics[0].filePath.contains("Sources/a.swift"))
         }
@@ -274,7 +299,6 @@ struct LinterTests {
             try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
             try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
 
-            // excluded_paths is relative to config rootDirectory (project root), not CLI path
             let config = Configuration(excludedPaths: ["Tests/**"], rootDirectory: root)
             let rules = RuleSet {
                 Rule(id: "all") { file, ctx in
@@ -297,8 +321,6 @@ struct LinterTests {
 
             try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
 
-            // Config says "Sources/**" relative to rootDirectory (project root)
-            // Even if CLI passes ./Sources, the glob should still match
             let config = Configuration(includedPaths: ["Sources/**"], rootDirectory: root)
             let rules = RuleSet {
                 Rule(id: "all") { file, ctx in
@@ -306,7 +328,6 @@ struct LinterTests {
                 }
             }
             let linter = LintEngine(rules: rules, config: config)
-            // This was the original bug: passing ./Sources with included_paths: Sources/** didn't match
             let result = await linter.lint(paths: ["\(root)/Sources"])
             #expect(result.diagnostics.count == 1)
         }
@@ -323,7 +344,6 @@ struct LinterTests {
             try "let a = 1\n".write(to: dir.appendingPathComponent("Sources/a.swift"), atomically: true, encoding: .utf8)
             try "let b = 2\n".write(to: dir.appendingPathComponent("Tests/b.swift"), atomically: true, encoding: .utf8)
 
-            // No included_paths — CLI paths should be used as scan roots
             let config = Configuration(excludedPaths: [], rootDirectory: root)
             let rules = RuleSet {
                 Rule(id: "all") { file, ctx in
