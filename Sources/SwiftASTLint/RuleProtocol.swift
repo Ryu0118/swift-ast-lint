@@ -25,17 +25,31 @@ public protocol RuleProtocol: Sendable {
 public extension RuleProtocol {
     /// Executes this rule, resolving arguments from raw YAML or falling back to defaults.
     func execute(file: SourceFileSyntax, context: LintContext, argsYAML: String?) {
-        let arguments: Arguments
-        if let argsYAML {
-            do {
-                arguments = try YAMLDecoder().decode(Arguments.self, from: argsYAML)
-            } catch {
-                logger.warning("Failed to decode args for rule '\(id)': \(error). Using defaults.")
-                arguments = defaultArguments
-            }
-        } else {
-            arguments = defaultArguments
+        execute(file: file, context: context, preDecodedArgs: decodeArguments(from: argsYAML))
+    }
+}
+
+package extension RuleProtocol {
+    /// Decodes this rule's arguments from raw YAML, returning them as a type-erased ``Sendable``.
+    ///
+    /// Used to pre-decode arguments once per lint run so that YAML decoding is not repeated for every file.
+    func decodeArguments(from argsYAML: String?) -> any Sendable {
+        guard let argsYAML else { return defaultArguments }
+        do {
+            return try YAMLDecoder().decode(Arguments.self, from: argsYAML)
+        } catch {
+            logger.warning("Failed to decode args for rule '\(id)': \(error). Using defaults.")
+            return defaultArguments
         }
-        check(file, context, arguments)
+    }
+
+    /// Executes this rule using pre-decoded arguments, falling back to defaults if the type does not match.
+    func execute(file: SourceFileSyntax, context: LintContext, preDecodedArgs: any Sendable) {
+        guard let args = preDecodedArgs as? Arguments else {
+            assertionFailure("Pre-decoded args type mismatch for rule '\(id)' — this is a programming error")
+            check(file, context, defaultArguments)
+            return
+        }
+        check(file, context, args)
     }
 }
