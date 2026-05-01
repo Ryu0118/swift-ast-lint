@@ -1,9 +1,20 @@
 #!/bin/bash
 # Fast AST lint runner with build cache.
 # Uses prebuilt binary when Rules sources and Package.swift haven't changed.
+#
+# Works correctly in git worktrees: swift-ast-linter is always resolved from
+# the main worktree root so that Package.swift's `.package(path: "..")` always
+# refers to the canonical "swift-ast-lint" package regardless of which worktree
+# directory name SPM would otherwise pick up.
 set -euo pipefail
 
-LINTER_DIR="swift-ast-linter"
+# Resolve the main worktree root via --git-common-dir (works in both main and
+# linked worktrees). In the main worktree --git-common-dir returns ".git"; we
+# resolve it to an absolute path and then take its parent.
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
+MAIN_ROOT=$(cd "$(dirname "$GIT_COMMON_DIR")" && pwd)
+
+LINTER_DIR="$MAIN_ROOT/swift-ast-linter"
 BINARY="$LINTER_DIR/.build/debug/swift-ast-lint"
 CHECKSUM_FILE="$LINTER_DIR/.build/.ast-lint-checksum"
 LINT_ARGS=("${@:-.}")
