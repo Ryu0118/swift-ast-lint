@@ -11,16 +11,16 @@ struct FixApplierTests {
     @Test("no fix-its returns original source unchanged")
     func emptyFixIts() {
         let source = "let x = 1\n"
-        let (result, count) = FixApplier.applyFixes(fixIts: [], to: source)
+        let (result, appliedCount) = FixApplier.applyFixes(fixIts: [], to: source)
         #expect(result == source)
-        #expect(count == 0)
+        #expect(appliedCount == 0)
     }
 
     @Test("empty source with no fix-its returns empty string")
     func emptySource() {
-        let (result, count) = FixApplier.applyFixes(fixIts: [], to: "")
+        let (result, appliedCount) = FixApplier.applyFixes(fixIts: [], to: "")
         #expect(result.isEmpty)
-        #expect(count == 0)
+        #expect(appliedCount == 0)
     }
 
     // MARK: - Single replacement
@@ -247,5 +247,82 @@ struct FixApplierTests {
         let (result, count) = FixApplier.applyFixes(fixIts: [fixIt], to: source)
         #expect(result == "let x = 1\n")
         #expect(count == 1)
+    }
+
+    // MARK: - O(n) deduplication invariant
+
+    @Test("three edits: third overlaps first but not second, O(n) algorithm rejects via transitivity")
+    func transitivityInvariant() {
+        // Source must be at least 130 UTF-8 bytes; use a long comment as filler.
+        // Byte layout (all ASCII so byte offset == character offset):
+        //   [0..<60)   — untouched prefix
+        //   [60..<105) — edit 3 range (spans into edit 1's range; should be rejected)
+        //   [70..<80)  — edit 2 range (accepted; lastAcceptedLowerBound becomes 70)
+        //   [100..<130) — edit 1 range (accepted first; lastAcceptedLowerBound becomes 100)
+        //   [130..)    — tail
+        let source = String(repeating: "A", count: 150)
+        let tree = Parser.parse(source: source)
+        let root = Syntax(tree)
+
+        let fixIt1 = FixIt(
+            message: SimpleFixItMessage("Edit 1"),
+            changes: [.replaceText(
+                range: AbsolutePosition(utf8Offset: 100) ..< AbsolutePosition(utf8Offset: 130),
+                with: "1",
+                in: root,
+            )],
+        )
+        let fixIt2 = FixIt(
+            message: SimpleFixItMessage("Edit 2"),
+            changes: [.replaceText(
+                range: AbsolutePosition(utf8Offset: 70) ..< AbsolutePosition(utf8Offset: 80),
+                with: "2",
+                in: root,
+            )],
+        )
+        // Edit 3 overlaps edit 1 ([100..<130)); the O(n) algorithm detects this because
+        // edit 3's upperBound (105) > lastAcceptedLowerBound (70) after edit 2 is accepted.
+        let fixIt3 = FixIt(
+            message: SimpleFixItMessage("Edit 3"),
+            changes: [.replaceText(
+                range: AbsolutePosition(utf8Offset: 60) ..< AbsolutePosition(utf8Offset: 105),
+                with: "3",
+                in: root,
+            )],
+        )
+
+        let (_, count) = FixApplier.applyFixes(fixIts: [fixIt1, fixIt2, fixIt3], to: source)
+        // Only edits 1 and 2 are applied; edit 3 is rejected because it overlaps edit 1.
+        #expect(count == 2)
+    }
+
+    @Test("adjacent half-open ranges that share a boundary are both applied")
+    func touchingBoundaryBothApplied() {
+        // "AAAAABBBBB": bytes [0..<5) replaced with "X", bytes [5..<10) replaced with "Y".
+        // The ranges share the boundary at offset 5 but do not overlap under half-open semantics.
+        let source = "AAAAABBBBB"
+        let tree = Parser.parse(source: source)
+        let root = Syntax(tree)
+
+        let fixIt1 = FixIt(
+            message: SimpleFixItMessage("Replace first half"),
+            changes: [.replaceText(
+                range: AbsolutePosition(utf8Offset: 0) ..< AbsolutePosition(utf8Offset: 5),
+                with: "X",
+                in: root,
+            )],
+        )
+        let fixIt2 = FixIt(
+            message: SimpleFixItMessage("Replace second half"),
+            changes: [.replaceText(
+                range: AbsolutePosition(utf8Offset: 5) ..< AbsolutePosition(utf8Offset: 10),
+                with: "Y",
+                in: root,
+            )],
+        )
+
+        let (result, count) = FixApplier.applyFixes(fixIts: [fixIt1, fixIt2], to: source)
+        #expect(count == 2)
+        #expect(result == "XY")
     }
 }

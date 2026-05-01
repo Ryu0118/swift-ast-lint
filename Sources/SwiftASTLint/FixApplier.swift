@@ -21,12 +21,15 @@ public enum FixApplier {
 
         allEdits.sort { $0.range.lowerBound.utf8Offset > $1.range.lowerBound.utf8Offset }
 
+        // Edits are sorted by descending lowerBound, so lastAcceptedLowerBound is
+        // always the minimum among accepted edits. If the current edit's upperBound
+        // does not exceed it, the edit cannot reach any earlier accepted edit either.
         var applied: [SourceEdit] = []
         var lastAcceptedLowerBound: Int?
         for edit in allEdits {
             let upperBound = edit.range.upperBound.utf8Offset
             if let lastLower = lastAcceptedLowerBound, upperBound > lastLower {
-                continue // overlaps with the previously accepted edit
+                continue
             }
             applied.append(edit)
             lastAcceptedLowerBound = edit.range.lowerBound.utf8Offset
