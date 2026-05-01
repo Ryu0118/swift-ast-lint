@@ -43,7 +43,11 @@ public struct ConfigurationLoader {
 
     private func resolveCachePath(_ cachePath: String?, rootDirectory: String) -> String? {
         guard let cachePath else { return nil }
-        let url = URL(filePath: cachePath, relativeTo: URL(filePath: rootDirectory, directoryHint: .isDirectory))
+        let url = if cachePath.hasPrefix("/") {
+            URL(filePath: cachePath)
+        } else {
+            URL(filePath: rootDirectory, directoryHint: .isDirectory).appending(path: cachePath)
+        }
         return url.standardized.path(percentEncoded: false)
     }
 
