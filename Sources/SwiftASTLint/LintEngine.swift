@@ -4,6 +4,8 @@ import SwiftParser
 import SwiftSyntax
 
 package struct LintEngine {
+    private static let parallelism: UInt = .init(max(1, ProcessInfo.processInfo.activeProcessorCount))
+
     let rules: RuleSet
     let config: Configuration?
     let fileCollector: FileCollector
@@ -127,8 +129,8 @@ package struct LintEngine {
         }
 
         let fileDiagnostics = await filtered.asyncMap(
-            numberOfConcurrentTasks: 10,
-        ) { filePath -> [Diagnostic] in
+            numberOfConcurrentTasks: Self.parallelism,
+        ) { filePath in
             lintSingleFile(filePath: filePath, filterBase: filterBase)
         }
 
@@ -160,14 +162,14 @@ package struct LintEngine {
             return (0, [])
         }
 
-        var totalFixed = 0
-        var allRemaining: [Diagnostic] = []
-
-        for filePath in filtered {
-            let (fixed, remaining) = fixSingleFile(filePath: filePath, filterBase: filterBase)
-            totalFixed += fixed
-            allRemaining.append(contentsOf: remaining)
+        let fileResults: [(fixedCount: Int, remaining: [Diagnostic])] = await filtered.asyncMap(
+            numberOfConcurrentTasks: Self.parallelism,
+        ) { filePath in
+            fixSingleFile(filePath: filePath, filterBase: filterBase)
         }
+
+        let totalFixed = fileResults.reduce(into: 0) { $0 += $1.fixedCount }
+        let allRemaining = fileResults.flatMap(\.remaining)
 
         return (totalFixed, allRemaining)
     }
