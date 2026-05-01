@@ -22,14 +22,14 @@ public enum FixApplier {
         allEdits.sort { $0.range.lowerBound.utf8Offset > $1.range.lowerBound.utf8Offset }
 
         var applied: [SourceEdit] = []
+        var lastAcceptedLowerBound: Int?
         for edit in allEdits {
-            let overlaps = applied.contains { existing in
-                edit.range.overlaps(existing.range)
-            }
-            if overlaps {
-                continue
+            let upperBound = edit.range.upperBound.utf8Offset
+            if let lastLower = lastAcceptedLowerBound, upperBound > lastLower {
+                continue // overlaps with the previously accepted edit
             }
             applied.append(edit)
+            lastAcceptedLowerBound = edit.range.lowerBound.utf8Offset
         }
 
         var utf8 = Array(source.utf8)
