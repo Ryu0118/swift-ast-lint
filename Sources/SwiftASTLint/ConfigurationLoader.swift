@@ -37,7 +37,14 @@ public struct ConfigurationLoader {
             rootDirectory: rootDir,
             disabledRules: Set(decoded.disabledRules),
             rules: ruleConfigs,
+            cachePath: resolveCachePath(decoded.cachePath, rootDirectory: rootDir),
         )
+    }
+
+    private func resolveCachePath(_ cachePath: String?, rootDirectory: String) -> String? {
+        guard let cachePath else { return nil }
+        let url = URL(filePath: cachePath, relativeTo: URL(filePath: rootDirectory, directoryHint: .isDirectory))
+        return url.standardized.path(percentEncoded: false)
     }
 
     private func buildRuleConfigs(
@@ -70,12 +77,14 @@ private struct DecodableConfig: Decodable {
     let excludedPaths: [String]
     let disabledRules: [String]
     let rules: [String: RuleConfiguration]
+    let cachePath: String?
 
     private enum CodingKeys: String, CodingKey {
         case includedPaths = "included_paths"
         case excludedPaths = "excluded_paths"
         case disabledRules = "disabled_rules"
         case rules
+        case cachePath = "cache_path"
     }
 
     init(from decoder: any Decoder) throws {
@@ -84,5 +93,6 @@ private struct DecodableConfig: Decodable {
         excludedPaths = try container.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
         disabledRules = try container.decodeIfPresent([String].self, forKey: .disabledRules) ?? []
         rules = try container.decodeIfPresent([String: RuleConfiguration].self, forKey: .rules) ?? [:]
+        cachePath = try container.decodeIfPresent(String.self, forKey: .cachePath)
     }
 }

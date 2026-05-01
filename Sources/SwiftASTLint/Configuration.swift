@@ -10,6 +10,8 @@ public struct Configuration: Sendable, Equatable {
     public let disabledRules: Set<String>
     /// Per-rule configuration overrides keyed by rule ID.
     public let rules: [String: RuleConfiguration]
+    /// Location of the persisted lint cache.
+    public let cachePath: String?
 
     /// Creates a configuration with the given parameters.
     public init(
@@ -18,12 +20,14 @@ public struct Configuration: Sendable, Equatable {
         rootDirectory: String = ".",
         disabledRules: Set<String> = [],
         rules: [String: RuleConfiguration] = [:],
+        cachePath: String? = nil,
     ) {
         self.includedPaths = includedPaths
         self.excludedPaths = excludedPaths
         self.rootDirectory = rootDirectory
         self.disabledRules = disabledRules
         self.rules = rules
+        self.cachePath = cachePath
     }
 }
 

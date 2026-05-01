@@ -36,6 +36,22 @@ struct ConfigurationLoaderTests {
             let config = try #require(try ConfigurationLoader().load(from: path.path(percentEncoded: false)))
             #expect(config.includedPaths.isEmpty)
             #expect(config.excludedPaths.isEmpty)
+            #expect(config.cachePath == nil)
+        }
+    }
+
+    @Test("cache_path is parsed relative to config directory")
+    func cachePath() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let path = dir.appendingPathComponent("cfg.yml")
+            try "cache_path: .swift-ast-lint-cache\n".write(to: path, atomically: true, encoding: .utf8)
+
+            let config = try #require(try ConfigurationLoader().load(from: path.path(percentEncoded: false)))
+            let expected = dir
+                .appendingPathComponent(".swift-ast-lint-cache")
+                .standardized
+                .path(percentEncoded: false)
+            #expect(config.cachePath == expected)
         }
     }
 
