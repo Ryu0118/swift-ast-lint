@@ -120,7 +120,9 @@ package struct LintEngine {
                 sourceLocationConverter: converter,
                 ruleID: rule.id,
             )
-            let preDecodedArgs = argsCache[rule.id] ?? rule.decodeArguments(from: nil)
+            guard let preDecodedArgs = argsCache[rule.id] else {
+                preconditionFailure("Args cache missing entry for rule '\(rule.id)' — this is a programming error in LintEngine")
+            }
             rule.execute(file: sourceFile, context: context, preDecodedArgs: preDecodedArgs)
             diagnostics.append(contentsOf: context.collectDiagnostics())
         }
