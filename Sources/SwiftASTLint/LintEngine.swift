@@ -127,7 +127,7 @@ package struct LintEngine {
         }
 
         let fileDiagnostics = await filtered.asyncMap(
-            numberOfConcurrentTasks: 10,
+            numberOfConcurrentTasks: UInt(ProcessInfo.processInfo.activeProcessorCount),
         ) { filePath -> [Diagnostic] in
             lintSingleFile(filePath: filePath, filterBase: filterBase)
         }
@@ -160,14 +160,14 @@ package struct LintEngine {
             return (0, [])
         }
 
-        var totalFixed = 0
-        var allRemaining: [Diagnostic] = []
-
-        for filePath in filtered {
-            let (fixed, remaining) = fixSingleFile(filePath: filePath, filterBase: filterBase)
-            totalFixed += fixed
-            allRemaining.append(contentsOf: remaining)
+        let fileResults: [(fixedCount: Int, remaining: [Diagnostic])] = await filtered.asyncMap(
+            numberOfConcurrentTasks: UInt(ProcessInfo.processInfo.activeProcessorCount),
+        ) { filePath in
+            fixSingleFile(filePath: filePath, filterBase: filterBase)
         }
+
+        let totalFixed = fileResults.reduce(0) { $0 + $1.fixedCount }
+        let allRemaining = fileResults.flatMap(\.remaining)
 
         return (totalFixed, allRemaining)
     }
