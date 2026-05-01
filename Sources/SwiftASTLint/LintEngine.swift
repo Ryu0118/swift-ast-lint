@@ -86,10 +86,20 @@ package struct LintEngine {
         )
     }
 
+    /// Builds a cache of pre-decoded rule arguments keyed by rule ID.
+    ///
+    /// This is computed once per lint run so that YAML decoding is not repeated for every file.
+    private func buildArgsCache() -> [String: any Sendable] {
+        rules.rules.reduce(into: [:]) { cache, rule in
+            cache[rule.id] = rule.decodeArguments(from: config?.rules[rule.id]?.argsYAML)
+        }
+    }
+
     private func runRules(
         filePath: String,
         source: String,
         filterBase: String,
+        argsCache: [String: any Sendable],
     ) -> [Diagnostic] {
         let sourceFile = Parser.parse(source: source)
         let converter = SourceLocationConverter(fileName: filePath, tree: sourceFile)
@@ -105,13 +115,13 @@ package struct LintEngine {
 
         var diagnostics: [Diagnostic] = []
         for rule in applicable {
-            let configRule = config?.rules[rule.id]
             let context = LintContext(
                 filePath: filePath,
                 sourceLocationConverter: converter,
                 ruleID: rule.id,
             )
-            rule.execute(file: sourceFile, context: context, argsYAML: configRule?.argsYAML)
+            let preDecodedArgs = argsCache[rule.id] ?? rule.decodeArguments(from: nil)
+            rule.execute(file: sourceFile, context: context, preDecodedArgs: preDecodedArgs)
             diagnostics.append(contentsOf: context.collectDiagnostics())
         }
         return diagnostics
@@ -128,16 +138,21 @@ package struct LintEngine {
             return LintResult(diagnostics: [])
         }
 
+        let argsCache = buildArgsCache()
         let fileDiagnostics = await filtered.asyncMap(
             numberOfConcurrentTasks: Self.parallelism,
         ) { filePath in
-            lintSingleFile(filePath: filePath, filterBase: filterBase)
+            lintSingleFile(filePath: filePath, filterBase: filterBase, argsCache: argsCache)
         }
 
         return LintResult(diagnostics: Array(fileDiagnostics.joined()).sorted())
     }
 
-    private func lintSingleFile(filePath: String, filterBase: String) -> [Diagnostic] {
+    private func lintSingleFile(
+        filePath: String,
+        filterBase: String,
+        argsCache: [String: any Sendable],
+    ) -> [Diagnostic] {
         let source: String
         do {
             source = try String(contentsOfFile: filePath, encoding: .utf8)
@@ -145,7 +160,7 @@ package struct LintEngine {
             logger.warning("Could not read \(filePath): \(error)")
             return []
         }
-        return runRules(filePath: filePath, source: source, filterBase: filterBase)
+        return runRules(filePath: filePath, source: source, filterBase: filterBase, argsCache: argsCache)
     }
 
     // MARK: - Fix (private)
@@ -162,10 +177,11 @@ package struct LintEngine {
             return (0, [])
         }
 
+        let argsCache = buildArgsCache()
         let fileResults: [(fixedCount: Int, remaining: [Diagnostic])] = await filtered.asyncMap(
             numberOfConcurrentTasks: Self.parallelism,
         ) { filePath in
-            fixSingleFile(filePath: filePath, filterBase: filterBase)
+            fixSingleFile(filePath: filePath, filterBase: filterBase, argsCache: argsCache)
         }
 
         let totalFixed = fileResults.reduce(into: 0) { $0 += $1.fixedCount }
@@ -177,6 +193,7 @@ package struct LintEngine {
     private func fixSingleFile(
         filePath: String,
         filterBase: String,
+        argsCache: [String: any Sendable],
     ) -> (fixedCount: Int, remaining: [Diagnostic]) {
         let source: String
         do {
@@ -186,7 +203,7 @@ package struct LintEngine {
             return (0, [])
         }
 
-        let diagnostics = runRules(filePath: filePath, source: source, filterBase: filterBase)
+        let diagnostics = runRules(filePath: filePath, source: source, filterBase: filterBase, argsCache: argsCache)
         let fixIts = diagnostics.flatMap(\.fixIts)
 
         if fixIts.isEmpty {

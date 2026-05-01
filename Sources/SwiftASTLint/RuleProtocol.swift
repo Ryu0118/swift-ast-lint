@@ -38,4 +38,23 @@ public extension RuleProtocol {
         }
         check(file, context, arguments)
     }
+
+    /// Decodes this rule's arguments from raw YAML, returning them as a type-erased ``Sendable``.
+    ///
+    /// Used to pre-decode arguments once per lint run so that repeated per-file decoding is avoided.
+    func decodeArguments(from argsYAML: String?) -> any Sendable {
+        if let argsYAML {
+            return (try? YAMLDecoder().decode(Arguments.self, from: argsYAML)) ?? defaultArguments
+        }
+        return defaultArguments
+    }
+
+    /// Executes this rule using pre-decoded arguments, falling back to defaults if the type does not match.
+    func execute(file: SourceFileSyntax, context: LintContext, preDecodedArgs: any Sendable) {
+        if let args = preDecodedArgs as? Arguments {
+            check(file, context, args)
+        } else {
+            check(file, context, defaultArguments)
+        }
+    }
 }
