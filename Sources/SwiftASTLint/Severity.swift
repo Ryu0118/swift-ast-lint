@@ -1,5 +1,5 @@
 /// Severity level for a lint diagnostic.
-public enum Severity: String, Sendable, Comparable {
+public enum Severity: String, Codable, Sendable, Comparable {
     case warning
     case error
 

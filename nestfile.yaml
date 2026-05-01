@@ -17,3 +17,7 @@ targets:
     version: 3.6.0
     assetName: periphery-3.6.0.artifactbundle.zip
     checksum: 3cc367216d365246953bce938395dffec5d061ad76fab71b2fdaf5f4c4c61ff0
+  - reference: Ryu0118/my-swift-linter
+    version: 0.5.0
+    assetName: my-swift-linter-0.5.0.artifactbundle.zip
+    checksum: ec628636625cd983fc922418761669fbb66039c693cf9285a4a7ff166cbd0eeb

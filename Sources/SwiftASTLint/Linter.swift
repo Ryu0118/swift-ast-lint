@@ -1,4 +1,5 @@
 import ArgumentParser
+import FileManagerProtocol
 import Foundation
 import Logging
 import Synchronization
@@ -30,6 +31,12 @@ public struct Linter: AsyncParsableCommand {
 
     @Option(name: .long, help: "Path to config file")
     var config: String = SwiftASTLintConstants.defaultConfigFileName
+
+    @Option(name: .long, help: "Path to cache directory")
+    var cachePath: String?
+
+    @Flag(name: .long, help: "Disable lint result cache")
+    var noCache: Bool = false
 
     @Flag(name: .long, help: "Apply autofixes for fixable violations")
     var fix: Bool = false
@@ -64,7 +71,8 @@ public struct Linter: AsyncParsableCommand {
         }
 
         let loadedConfig = loadConfig()
-        let engine = LintEngine(rules: rules, config: loadedConfig)
+        let cache = makeCache(rules: rules, config: loadedConfig)
+        let engine = LintEngine(rules: rules, config: loadedConfig, cache: cache)
 
         if fix {
             let result = await engine.fixAndOutputDiagnostics(paths: paths)
@@ -91,5 +99,49 @@ public struct Linter: AsyncParsableCommand {
             logger.error("Failed to load \(config): \(error)")
             return nil
         }
+    }
+
+    private func makeCache(rules: RuleSet, config: Configuration?) -> LintCache? {
+        Self.makeCache(
+            rules: rules,
+            config: config,
+            cliCachePath: cachePath,
+            noCache: noCache,
+            fix: fix,
+        )
+    }
+
+    /// Builds the lint result cache for the effective CLI/config options.
+    package static func makeCache(
+        rules: RuleSet,
+        config: Configuration?,
+        cliCachePath: String?,
+        noCache: Bool,
+        fix: Bool,
+        executablePath: String = CommandLine.arguments[0],
+        fileManager: some FileManagerProtocol = FileManager.default,
+    ) -> LintCache? {
+        guard !noCache, !fix else { return nil }
+        guard let fingerprint = LintCache.ExecutableFingerprint.resolve(
+            executablePath: executablePath,
+            fileManager: fileManager,
+        ) else {
+            logger.warning("Could not resolve executable fingerprint. Lint cache is disabled.")
+            return nil
+        }
+
+        let directory: String = if let cliCachePath {
+            LintCache.customDirectory(path: cliCachePath, fingerprint: fingerprint)
+        } else if let configCachePath = config?.cachePath {
+            LintCache.customDirectory(path: configCachePath, fingerprint: fingerprint)
+        } else {
+            LintCache.defaultDirectory(fingerprint: fingerprint, fileManager: fileManager)
+        }
+
+        return LintCache(
+            directory: directory,
+            cacheDescription: LintCache.cacheDescription(configuration: config, rules: rules),
+            fileManager: fileManager,
+        )
     }
 }

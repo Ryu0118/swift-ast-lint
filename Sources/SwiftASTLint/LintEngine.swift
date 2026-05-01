@@ -9,11 +9,18 @@ package struct LintEngine {
     let rules: RuleSet
     let config: Configuration?
     let fileCollector: FileCollector
+    let cache: LintCache?
 
-    package init(rules: RuleSet, config: Configuration? = nil, fileCollector: FileCollector = FileCollector()) {
+    package init(
+        rules: RuleSet,
+        config: Configuration? = nil,
+        fileCollector: FileCollector = FileCollector(),
+        cache: LintCache? = nil,
+    ) {
         self.rules = rules
         self.config = config
         self.fileCollector = fileCollector
+        self.cache = cache
     }
 
     // MARK: - Lint
@@ -33,6 +40,7 @@ package struct LintEngine {
             let result = await lintFiles(scanRoot: scanRoot, filterBase: filterBase)
             allDiagnostics.append(contentsOf: result.diagnostics)
         }
+        cache?.save()
         return LintResult(diagnostics: allDiagnostics.sorted())
     }
 
@@ -155,6 +163,10 @@ package struct LintEngine {
         filterBase: String,
         argsCache: [String: any Sendable],
     ) -> [Diagnostic] {
+        if let cachedDiagnostics = cache?.diagnostics(forFile: filePath) {
+            return cachedDiagnostics
+        }
+
         let source: String
         do {
             source = try String(contentsOfFile: filePath, encoding: .utf8)
@@ -162,7 +174,9 @@ package struct LintEngine {
             logger.warning("Could not read \(filePath): \(error)")
             return []
         }
-        return runRules(filePath: filePath, source: source, filterBase: filterBase, argsCache: argsCache)
+        let diagnostics = runRules(filePath: filePath, source: source, filterBase: filterBase, argsCache: argsCache)
+        cache?.cache(diagnostics: diagnostics, forFile: filePath)
+        return diagnostics
     }
 
     // MARK: - Fix (private)

@@ -19,6 +19,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-system.git", from: "1.5.0"),
         .package(url: "https://github.com/mtj0928/swift-async-operations.git", from: "0.5.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.2"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "4.5.0"),
     ],
     targets: [
         .target(
@@ -32,6 +33,7 @@ let package = Package(
                 .product(name: "AsyncOperations", package: "swift-async-operations"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "FileManagerProtocol", package: "FileManagerProtocol"),
+                .product(name: "Crypto", package: "swift-crypto"),
             ],
         ),
         .target(
