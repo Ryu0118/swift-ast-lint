@@ -1,0 +1,45 @@
+rules:
+- name: readme-cli
+  sources:
+  - Sources/swift-ast-lint-tool/InitCommand.swift
+  - Sources/swift-ast-lint-tool/SwiftASTLintTool.swift
+  - Sources/swift-ast-lint-tool/Version.swift
+  - Sources/SwiftASTLint/ConfigurationLoader.swift
+  - Sources/SwiftASTLint/Configuration.swift
+  doc: README.md
+  message: "CLI surface or config schema changed \u2014 update README (Usage, Configuration,
+    Installation) if user-facing behavior changed."
+  checksum: f8d1dd61af4c3e07fda3a360bd424c4c4a33db058be5ee26873e09a1ac2a7610
+- name: readme-api
+  sources:
+  - Sources/SwiftASTLint/Rule.swift
+  - Sources/SwiftASTLint/RuleProtocol.swift
+  - Sources/SwiftASTLint/ParameterizedRule.swift
+  - Sources/SwiftASTLint/RuleSet.swift
+  - Sources/SwiftASTLint/LintContext.swift
+  - Sources/SwiftASTLint/Diagnostic.swift
+  - Sources/SwiftASTLint/Severity.swift
+  doc: README.md
+  message: "Public Rule/RuleSet/LintContext API changed \u2014 update README (Rule
+    API section) if the interface changed."
+  checksum: 4db3fe7823481a6ae4e6ab5c974c2eee46d806aac15ce4b11b6393a9de2f2627
+- name: readme-scaffold
+  sources:
+  - Sources/SwiftASTLintScaffold/Scaffold.swift
+  - Sources/SwiftASTLintScaffold/Constants.swift
+  doc: README.md
+  message: "Scaffold template changed \u2014 update README (init command section)
+    if generated output changed."
+  checksum: c35839f75f94b23fb1de23b9037b2436879a871b773dec7d3dae9343a411df0a
+- name: agents-claude
+  sources:
+  - Package.swift
+  - Sources/SwiftASTLint/LintEngine.swift
+  - Sources/SwiftASTLint/FileCollector.swift
+  - Sources/SwiftASTLint/GlobPattern.swift
+  - Sources/SwiftASTLint/LintCache.swift
+  - Sources/SwiftASTLint/FixApplier.swift
+  doc: CLAUDE.md
+  message: "Core architecture or engine internals changed \u2014 update CLAUDE.md
+    if the architecture description is affected."
+  checksum: c568d6ec5c3dfff4e61c6d27efb4ccebe41cec2534bbc3f6970893ea71bca8b4

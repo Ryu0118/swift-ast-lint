@@ -21,3 +21,7 @@ targets:
     version: 0.5.0
     assetName: my-swift-linter-0.5.0.artifactbundle.zip
     checksum: ec628636625cd983fc922418761669fbb66039c693cf9285a4a7ff166cbd0eeb
+  - reference: Ryu0118/docsync
+    version: 0.1.0
+    assetName: docsync-0.1.0.artifactbundle.zip
+    checksum: 5c3f2e187cd07743145dfe5f9e60de1a38215708bde928eab8dae90bb26072cb
