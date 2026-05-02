@@ -9,7 +9,7 @@ rules:
   doc: README.md
   message: "CLI surface or config schema changed \u2014 update README (Usage, Configuration,
     Installation) if user-facing behavior changed."
-  checksum: f8d1dd61af4c3e07fda3a360bd424c4c4a33db058be5ee26873e09a1ac2a7610
+  checksum: 5b161c323184b3188b17619f7c7139f5b645700d7aa088a3e9a366aa6c8f53e1
 - name: readme-api
   sources:
   - Sources/SwiftASTLint/Rule.swift
@@ -22,7 +22,7 @@ rules:
   doc: README.md
   message: "Public Rule/RuleSet/LintContext API changed \u2014 update README (Rule
     API section) if the interface changed."
-  checksum: 4db3fe7823481a6ae4e6ab5c974c2eee46d806aac15ce4b11b6393a9de2f2627
+  checksum: e6eb60e9040721b1d4cd57bffccb7e71004a5492fa05c7fa986d155dc23d0ba4
 - name: readme-scaffold
   sources:
   - Sources/SwiftASTLintScaffold/Scaffold.swift
@@ -30,7 +30,7 @@ rules:
   doc: README.md
   message: "Scaffold template changed \u2014 update README (init command section)
     if generated output changed."
-  checksum: c35839f75f94b23fb1de23b9037b2436879a871b773dec7d3dae9343a411df0a
+  checksum: 0a06d86ab9f1a12ba182f7394c5951f52ce9b7cc6b8c856b6194196f5cd4e4dc
 - name: agents-claude
   sources:
   - Package.swift
@@ -42,4 +42,4 @@ rules:
   doc: CLAUDE.md
   message: "Core architecture or engine internals changed \u2014 update CLAUDE.md
     if the architecture description is affected."
-  checksum: c568d6ec5c3dfff4e61c6d27efb4ccebe41cec2534bbc3f6970893ea71bca8b4
+  checksum: e9a23c906b6a5368c65cb834792462e7051bb1a2f59bbf34e5279ea2fc213bfb
