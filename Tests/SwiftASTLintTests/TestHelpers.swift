@@ -1,3 +1,4 @@
+import Logging
 @testable import SwiftASTLint
 import SwiftDiagnostics
 import SwiftParser
@@ -16,6 +17,36 @@ func makeLintContext(
         ruleID: ruleID,
     )
     return (parsed, context)
+}
+
+final class CapturingLogHandler: LogHandler, @unchecked Sendable {
+    var logLevel: Logger.Level = .trace
+    var metadata: Logger.Metadata = [:]
+    private(set) var messages: [String] = []
+
+    subscript(metadataKey key: String) -> Logger.Metadata.Value? {
+        get { metadata[key] }
+        set { metadata[key] = newValue }
+    }
+
+    // swiftlint:disable:next function_parameter_count
+    func log(
+        level: Logger.Level,
+        message: Logger.Message,
+        metadata: Logger.Metadata?,
+        source: String,
+        file: String,
+        function: String,
+        line: UInt,
+    ) {
+        messages.append(message.description)
+    }
+}
+
+func makeCapturingLogger() -> (Logger, CapturingLogHandler) {
+    let handler = CapturingLogHandler()
+    let log = Logger(label: "test") { _ in handler }
+    return (log, handler)
 }
 
 /// Creates a minimal FixIt for tests that only need to check isFixable/Equatable.

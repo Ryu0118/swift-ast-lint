@@ -1,5 +1,6 @@
 import AsyncOperations
 import Foundation
+import Logging
 import SwiftParser
 import SwiftSyntax
 
@@ -10,17 +11,20 @@ package struct LintEngine {
     let config: Configuration?
     let fileCollector: FileCollector
     let cache: LintCache?
+    let log: Logger
 
     package init(
         rules: RuleSet,
         config: Configuration? = nil,
         fileCollector: FileCollector = FileCollector(),
         cache: LintCache? = nil,
+        logger: Logger = SwiftASTLint.logger,
     ) {
         self.rules = rules
         self.config = config
         self.fileCollector = fileCollector
         self.cache = cache
+        log = logger
     }
 
     // MARK: - Lint
@@ -44,11 +48,11 @@ package struct LintEngine {
 
         let sorted = allDiagnostics.sorted()
         for diagnostic in sorted {
-            logger.info("\(diagnostic.formatted)")
+            log.info("\(diagnostic.formatted)")
         }
 
         let errorCount = sorted.count { $0.severity == .error }
-        logger.info("Done linting! Found \(sorted.count) violations, \(errorCount) serious in \(total) files.")
+        log.info("Done linting! Found \(sorted.count) violations, \(errorCount) serious in \(total) files.")
         return LintResult(diagnostics: sorted)
     }
 
@@ -94,11 +98,11 @@ package struct LintEngine {
 
         let sorted = allRemaining.sorted()
         for diagnostic in sorted {
-            logger.info("\(diagnostic.formatted)")
+            log.info("\(diagnostic.formatted)")
         }
 
         let errorCount = sorted.count { $0.severity == .error }
-        logger.info("Done linting! Found \(sorted.count) violations, \(errorCount) serious in \(total) files.")
+        log.info("Done linting! Found \(sorted.count) violations, \(errorCount) serious in \(total) files.")
         return FixResult(fixedCount: totalFixed, remainingDiagnostics: sorted)
     }
 
@@ -137,7 +141,7 @@ package struct LintEngine {
             do {
                 allSwiftFiles = try fileCollector.collectSwiftFiles(rootPath: scanRoot)
             } catch {
-                logger.error("Failed to collect files at \(scanRoot): \(error)")
+                log.error("Failed to collect files at \(scanRoot): \(error)")
                 return nil
             }
             let files = fileCollector.applyFilters(
@@ -204,7 +208,7 @@ package struct LintEngine {
         await files.asyncMap(numberOfConcurrentTasks: Self.parallelism) { filePath in
             let index = await counter.next()
             let name = URL(filePath: filePath).lastPathComponent
-            logger.info("Linting '\(name)' (\(index)/\(total))")
+            log.info("Linting '\(name)' (\(index)/\(total))")
             return await transform(filePath)
         }
     }
@@ -237,7 +241,7 @@ package struct LintEngine {
         do {
             source = try String(contentsOfFile: filePath, encoding: .utf8)
         } catch {
-            logger.warning("Could not read \(filePath): \(error)")
+            log.warning("Could not read \(filePath): \(error)")
             return []
         }
         let diagnostics = runRules(filePath: filePath, source: source, filterBase: filterBase, argsCache: argsCache)
@@ -272,7 +276,7 @@ package struct LintEngine {
         do {
             source = try String(contentsOfFile: filePath, encoding: .utf8)
         } catch {
-            logger.warning("Could not read \(filePath): \(error)")
+            log.warning("Could not read \(filePath): \(error)")
             return (0, [])
         }
 
@@ -288,7 +292,7 @@ package struct LintEngine {
         do {
             try fixedSource.write(toFile: filePath, atomically: true, encoding: .utf8)
         } catch {
-            logger.error("Could not write fixes to \(filePath): \(error)")
+            log.error("Could not write fixes to \(filePath): \(error)")
             return (0, diagnostics)
         }
 

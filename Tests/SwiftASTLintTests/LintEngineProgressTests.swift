@@ -7,8 +7,22 @@ import Testing
 
 @Suite("LintEngine progress output: per-file logging and summary counts")
 struct LintEngineProgressTests {
-    @Test("lintAndOutputDiagnostics returns correct violation and error counts")
-    func summaryCountsAreCorrect() async throws {
+    @Test("lintAndOutputDiagnostics emits Linting line for each file")
+    func emitsLintingLinePerFile() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let path = dir.appendingPathComponent("a.swift")
+            try "let x = 1\n".write(to: path, atomically: true, encoding: .utf8)
+
+            let (log, handler) = makeCapturingLogger()
+            let engine = LintEngine(rules: RuleSet {}, logger: log)
+            _ = await engine.lintAndOutputDiagnostics(paths: [dir.path(percentEncoded: false)])
+
+            #expect(handler.messages.contains { $0.hasPrefix("Linting 'a.swift' (") })
+        }
+    }
+
+    @Test("lintAndOutputDiagnostics emits correct Done linting summary")
+    func emitsDoneLintingSummary() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
             let path = dir.appendingPathComponent("a.swift")
             try "let x = 1\n".write(to: path, atomically: true, encoding: .utf8)
@@ -21,63 +35,49 @@ struct LintEngineProgressTests {
                     ctx.report(on: file, message: "error", severity: .error)
                 }
             }
-            let engine = LintEngine(rules: rules)
-            let result = await engine.lintAndOutputDiagnostics(
-                paths: [dir.path(percentEncoded: false)],
-            )
+            let (log, handler) = makeCapturingLogger()
+            let engine = LintEngine(rules: rules, logger: log)
+            _ = await engine.lintAndOutputDiagnostics(paths: [dir.path(percentEncoded: false)])
 
-            #expect(result.diagnostics.count == 2)
-            #expect(result.diagnostics.count { $0.severity == .error } == 1)
-            #expect(result.hasErrors)
+            #expect(handler.messages.contains("Done linting! Found 2 violations, 1 serious in 1 files."))
         }
     }
 
-    @Test("lintAndOutputDiagnostics processes all files and returns diagnostics for each")
-    func allFilesAreProcessed() async throws {
+    @Test("lintAndOutputDiagnostics total count is correct across multiple files")
+    func totalCountIsCorrectAcrossMultipleFiles() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
-            let fileCount = 5
+            let fileCount = 3
             for idx in 0 ..< fileCount {
                 let path = dir.appendingPathComponent("file\(idx).swift")
                 try "let x = 1\n".write(to: path, atomically: true, encoding: .utf8)
             }
 
-            let rules = RuleSet {
-                Rule(id: "always-warn") { file, ctx in
-                    ctx.report(on: file, message: "warn", severity: .warning)
-                }
-            }
-            let engine = LintEngine(rules: rules)
-            let result = await engine.lintAndOutputDiagnostics(
-                paths: [dir.path(percentEncoded: false)],
-            )
+            let (log, handler) = makeCapturingLogger()
+            let engine = LintEngine(rules: RuleSet {}, logger: log)
+            _ = await engine.lintAndOutputDiagnostics(paths: [dir.path(percentEncoded: false)])
 
-            #expect(result.diagnostics.count == fileCount)
+            let lintingLines = handler.messages.filter { $0.hasPrefix("Linting '") }
+            #expect(lintingLines.count == fileCount)
+            #expect(lintingLines.allSatisfy { $0.contains("/\(fileCount))") })
         }
     }
 
-    @Test("lintAndOutputDiagnostics with no violations produces empty diagnostics")
-    func noViolationsProducesEmptyResult() async throws {
+    @Test("lintAndOutputDiagnostics with no violations emits zero-violation summary")
+    func noViolationsEmitsZeroSummary() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
             let path = dir.appendingPathComponent("a.swift")
             try "let x = 1\n".write(to: path, atomically: true, encoding: .utf8)
 
-            let rules = RuleSet {
-                Rule(id: "var-only") { file, ctx in
-                    reportVarDecls(in: file, context: ctx)
-                }
-            }
-            let engine = LintEngine(rules: rules)
-            let result = await engine.lintAndOutputDiagnostics(
-                paths: [dir.path(percentEncoded: false)],
-            )
+            let (log, handler) = makeCapturingLogger()
+            let engine = LintEngine(rules: RuleSet { varOnlyRule() }, logger: log)
+            _ = await engine.lintAndOutputDiagnostics(paths: [dir.path(percentEncoded: false)])
 
-            #expect(result.diagnostics.isEmpty)
-            #expect(!result.hasErrors)
+            #expect(handler.messages.contains("Done linting! Found 0 violations, 0 serious in 1 files."))
         }
     }
 
-    @Test("fixAndOutputDiagnostics summary counts reflect remaining diagnostics only")
-    func fixSummaryCountsAreCorrect() async throws {
+    @Test("fixAndOutputDiagnostics emits summary reflecting remaining diagnostics")
+    func fixSummaryReflectsRemaining() async throws {
         try await FileManager.default.runInTemporaryDirectory { dir in
             let path = dir.appendingPathComponent("a.swift")
             try "var x = 1\n".write(to: path, atomically: true, encoding: .utf8)
@@ -88,20 +88,22 @@ struct LintEngineProgressTests {
                     ctx.report(on: file, message: "unfixable error", severity: .error)
                 }
             }
-            let engine = LintEngine(rules: rules)
-            let result = await engine.fixAndOutputDiagnostics(
-                paths: [dir.path(percentEncoded: false)],
-            )
+            let (log, handler) = makeCapturingLogger()
+            let engine = LintEngine(rules: rules, logger: log)
+            _ = await engine.fixAndOutputDiagnostics(paths: [dir.path(percentEncoded: false)])
 
-            #expect(result.fixedCount == 1)
-            #expect(result.remainingDiagnostics.count == 1)
-            #expect(result.remainingDiagnostics[0].severity == .error)
-            #expect(result.hasErrors)
+            #expect(handler.messages.contains("Done linting! Found 1 violations, 1 serious in 1 files."))
         }
     }
 }
 
 // MARK: - Helpers
+
+private func varOnlyRule() -> Rule {
+    Rule(id: "var-only") { file, ctx in
+        reportVarDecls(in: file, context: ctx)
+    }
+}
 
 private func reportVarDecls(in file: SourceFileSyntax, context: LintContext) {
     for stmt in file.statements {
