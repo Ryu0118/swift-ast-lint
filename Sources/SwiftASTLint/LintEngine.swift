@@ -2,7 +2,6 @@ import AsyncOperations
 import Foundation
 import SwiftParser
 import SwiftSyntax
-import Synchronization
 
 package struct LintEngine {
     private static let parallelism: UInt = .init(max(1, ProcessInfo.processInfo.activeProcessorCount))
@@ -105,13 +104,11 @@ package struct LintEngine {
 
     // MARK: - Private
 
-    private final class ProgressCounter: Sendable {
-        private let storage = Mutex<Int>(0)
+    private actor ProgressCounter {
+        private var value = 0
         func next() -> Int {
-            storage.withLock { value in
-                value += 1
-                return value
-            }
+            value += 1
+            return value
         }
     }
 
@@ -206,7 +203,7 @@ package struct LintEngine {
     ) async -> LintResult {
         let argsCache = buildArgsCache()
         let fileDiagnostics = await files.asyncMap(numberOfConcurrentTasks: Self.parallelism) { filePath in
-            let index = counter.next()
+            let index = await counter.next()
             let name = URL(filePath: filePath).lastPathComponent
             logger.info("Linting '\(name)' (\(index)/\(total))")
             return lintSingleFile(filePath: filePath, filterBase: filterBase, argsCache: argsCache)
@@ -247,7 +244,7 @@ package struct LintEngine {
         let fileResults: [(fixedCount: Int, remaining: [Diagnostic])] = await files.asyncMap(
             numberOfConcurrentTasks: Self.parallelism,
         ) { filePath in
-            let index = counter.next()
+            let index = await counter.next()
             let name = URL(filePath: filePath).lastPathComponent
             logger.info("Linting '\(name)' (\(index)/\(total))")
             return fixSingleFile(filePath: filePath, filterBase: filterBase, argsCache: argsCache)
