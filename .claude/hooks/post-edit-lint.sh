@@ -54,19 +54,6 @@ if echo "$FILE_PATH" | grep -q '\.swift$'; then
   fi
 fi
 
-# 4. gitnagg (always, regardless of file type)
-if [ -x "$SRCROOT/.nest/bin/gitnagg" ] && [ -f "$SRCROOT/.gitnagg.yml" ]; then
-  set +e
-  NAGG_OUTPUT=$("$SRCROOT/.nest/bin/gitnagg" check --config "$SRCROOT/.gitnagg.yml" 2>&1)
-  NAGG_STATUS=$?
-  set -e
-  if [ "$NAGG_STATUS" -ne 0 ]; then
-    echo "$NAGG_OUTPUT" >&2
-    ALL_REASONS="${ALL_REASONS}${NAGG_OUTPUT}\n"
-    HAS_ERROR=1
-  fi
-fi
-
 # Block with all collected diagnostics
 if [ "$HAS_ERROR" -ne 0 ]; then
   REASON=$(printf '%b' "$ALL_REASONS" | jq -Rs .)

@@ -29,6 +29,15 @@
             "command": "cat | sh .claude/hooks/post-edit-lint.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat | sh .claude/hooks/gitnagg-check.sh"
+          }
+        ]
       }
     ]
   }
