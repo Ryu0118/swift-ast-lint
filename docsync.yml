@@ -9,7 +9,7 @@ rules:
   doc: README.md
   message: "CLI surface or config schema changed \u2014 update README (Usage, Configuration,
     Installation) if user-facing behavior changed."
-  checksum: 5b161c323184b3188b17619f7c7139f5b645700d7aa088a3e9a366aa6c8f53e1
+  checksum: 26203ba8a5fd8129e792d4a056f2e3f5c39c6b7212688867b3c8c66f5ba38bdd
 - name: readme-api
   sources:
   - Sources/SwiftASTLint/Rule.swift

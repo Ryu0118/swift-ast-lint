@@ -152,13 +152,16 @@ Rule(id: "rule-id") { file, context in
 ```swift
 struct ThresholdArgs: Codable, Sendable {
     var threshold: Int = 50
+    var severity: Severity = .warning
 }
 
 ParameterizedRule(id: "large-type", defaultArguments: ThresholdArgs()) { file, context, args in
-    // args.threshold is 50 by default, overridable via YAML
-    context.report(on: node, message: "Type too large", severity: .warning)
+    // args.threshold and args.severity are overridable via YAML
+    context.report(on: node, message: "Type too large", severity: args.severity)
 }
 ```
+
+`Severity` conforms to `Codable`, so it decodes directly from the YAML string `"warning"` or `"error"`.
 
 ### Rules with autofix
 
@@ -242,6 +245,7 @@ rules:
   large-type:
     args:
       threshold: 30           # Override ParameterizedRule defaults
+      severity: error         # "warning" or "error"
     include:
       - "Sources/**"          # Only apply this rule to Sources/
     exclude:

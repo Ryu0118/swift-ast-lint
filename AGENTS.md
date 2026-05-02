@@ -8,7 +8,7 @@ Three modules: **SwiftASTLint** (core library), **SwiftASTLintScaffold** (packag
 
 SwiftASTLint internal structure:
 - `Linter` — Public CLI entry point (`Linter.lint(rules)`). AsyncParsableCommand thin wrapper. Bootstraps LoggingSystem. `--fix` flag for autofix mode.
-- `LintEngine` — Internal lint execution (file collection, filtering, rule application). Unit-testable without ArgumentParser. Fix mode: `fixAndOutputDiagnostics()` collects FixIts, applies via `FixApplier`, writes back.
+- `LintEngine` — Internal lint execution (file collection, filtering, rule application). Unit-testable without ArgumentParser. Fix mode: `fixAndOutputDiagnostics()` collects FixIts, applies via `FixApplier`, writes back. Emits per-file progress (`Linting 'X.swift' (n/total)`) and a summary line via injected `Logger` (defaults to package-level `logger`; pass a custom `Logger` for testing). Uses `collectBatches()` to gather all files upfront for accurate total count. `ProgressCounter` (private `actor`) provides thread-safe incrementing index across parallel `asyncMap` tasks.
 - `FixApplier` — Applies SwiftSyntax `FixIt` edits to source text. Uses `FixIt.edits` (public API) → `SourceEdit` → UTF-8 byte replacement. Descending offset order, overlap skipping.
 - `LintContext` — `report(on:message:severity:)` for unfixable, `reportWithFix(on:message:severity:fixIts:)` for fixable violations. FixIts use SwiftDiagnostics `FixIt`/`FixIt.Change` directly.
 - `SimpleFixItMessage` — Public `FixItMessage` implementation for rule authors.

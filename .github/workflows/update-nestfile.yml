@@ -1,0 +1,55 @@
+name: Update Nestfile
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # daily at midnight UTC
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  update-nestfile:
+    name: Update Nestfile
+    runs-on: macos-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode
+        run: sudo xcode-select --switch /Applications/Xcode_26.2.app/Contents/Developer
+
+      - name: Install nest and bootstrap
+        run: ./scripts/nest.sh bootstrap nestfile.yaml
+
+      - name: Update nestfile
+        run: ./scripts/nest.sh update-nestfile nestfile.yaml
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet nestfile.yaml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: update-nestfile
+          commit-message: 'nestfile: update to latest versions'
+          title: 'nestfile: update to latest versions'
+          body: |
+            Automated nestfile update via `nest update-nestfile`.
+
+            Review the version bumps and merge if CI passes.
+          delete-branch: true
