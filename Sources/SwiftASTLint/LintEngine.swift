@@ -193,6 +193,22 @@ package struct LintEngine {
         return diagnostics
     }
 
+    // MARK: - File processing (private)
+
+    private func processFiles<T: Sendable>(
+        files: [String],
+        total: Int,
+        counter: ProgressCounter,
+        transform: @escaping @Sendable (String) async -> T,
+    ) async -> [T] {
+        await files.asyncMap(numberOfConcurrentTasks: Self.parallelism) { filePath in
+            let index = await counter.next()
+            let name = URL(filePath: filePath).lastPathComponent
+            logger.info("Linting '\(name)' (\(index)/\(total))")
+            return await transform(filePath)
+        }
+    }
+
     // MARK: - Lint (private)
 
     private func lintFiles(
@@ -202,11 +218,8 @@ package struct LintEngine {
         counter: ProgressCounter,
     ) async -> LintResult {
         let argsCache = buildArgsCache()
-        let fileDiagnostics = await files.asyncMap(numberOfConcurrentTasks: Self.parallelism) { filePath in
-            let index = await counter.next()
-            let name = URL(filePath: filePath).lastPathComponent
-            logger.info("Linting '\(name)' (\(index)/\(total))")
-            return lintSingleFile(filePath: filePath, filterBase: filterBase, argsCache: argsCache)
+        let fileDiagnostics = await processFiles(files: files, total: total, counter: counter) { filePath in
+            lintSingleFile(filePath: filePath, filterBase: filterBase, argsCache: argsCache)
         }
         return LintResult(diagnostics: Array(fileDiagnostics.joined()).sorted())
     }
@@ -241,13 +254,8 @@ package struct LintEngine {
         counter: ProgressCounter,
     ) async -> (fixedCount: Int, remaining: [Diagnostic]) {
         let argsCache = buildArgsCache()
-        let fileResults: [(fixedCount: Int, remaining: [Diagnostic])] = await files.asyncMap(
-            numberOfConcurrentTasks: Self.parallelism,
-        ) { filePath in
-            let index = await counter.next()
-            let name = URL(filePath: filePath).lastPathComponent
-            logger.info("Linting '\(name)' (\(index)/\(total))")
-            return fixSingleFile(filePath: filePath, filterBase: filterBase, argsCache: argsCache)
+        let fileResults = await processFiles(files: files, total: total, counter: counter) { filePath in
+            fixSingleFile(filePath: filePath, filterBase: filterBase, argsCache: argsCache)
         }
 
         let totalFixed = fileResults.reduce(into: 0) { $0 += $1.fixedCount }
