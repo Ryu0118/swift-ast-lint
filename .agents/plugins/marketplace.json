@@ -1,0 +1,20 @@
+{
+  "name": "swift-ast-lint",
+  "interface": {
+    "displayName": "swift-ast-lint"
+  },
+  "plugins": [
+    {
+      "name": "swift-ast-lint",
+      "source": {
+        "source": "local",
+        "path": "./plugins/swift-ast-lint"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

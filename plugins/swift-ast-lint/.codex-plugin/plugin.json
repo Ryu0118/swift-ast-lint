@@ -1,0 +1,34 @@
+{
+  "name": "swift-ast-lint",
+  "version": "0.3.0",
+  "description": "SwiftASTLint rule authoring guide and scaffolding support for AI agents and humans.",
+  "author": {
+    "name": "Ryu0118"
+  },
+  "homepage": "https://github.com/Ryu0118/swift-ast-lint",
+  "repository": "https://github.com/Ryu0118/swift-ast-lint",
+  "license": "MIT",
+  "keywords": [
+    "swift",
+    "swift-syntax",
+    "lint",
+    "agent"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "swift-ast-lint",
+    "shortDescription": "Create SwiftASTLint rules from Codex.",
+    "longDescription": "swift-ast-lint provides Codex with rule authoring guidance, SwiftSyntax lint APIs, scaffold setup, YAML configuration, autofix, and testing workflows.",
+    "developerName": "Ryu0118",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Create a SwiftASTLint rule for this project.",
+      "Scaffold a new SwiftASTLint linter package.",
+      "Explain how to test and configure this SwiftASTLint rule."
+    ]
+  }
+}

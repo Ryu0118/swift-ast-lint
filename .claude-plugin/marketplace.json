@@ -1,0 +1,17 @@
+{
+  "name": "swift-ast-lint",
+  "owner": {
+    "name": "Ryu0118"
+  },
+  "metadata": {
+    "description": "Official swift-ast-lint skills for Claude Code",
+    "version": "0.3.0"
+  },
+  "plugins": [
+    {
+      "name": "swift-ast-lint",
+      "source": "./.claude/plugins/swift-ast-lint",
+      "category": "productivity"
+    }
+  ]
+}

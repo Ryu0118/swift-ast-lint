@@ -44,3 +44,7 @@ make hooks             # Set up git hooks
 - `FileManagerProtocol` `runInTemporaryDirectory` for temp files.
 - Test `LintEngine` directly, not through `Linter` (ArgumentParser).
 - Parameterized tests where applicable. 90%+ coverage target.
+
+## Skill Distribution
+
+`skills/` is the single source of truth for agent skills. Claude Code, Codex, APM, and `.agents` entries should reference it through symlinks. Do not edit linked copies as independent sources.
