@@ -1,3 +1,4 @@
+import Foundation
 import SwiftSyntax
 import Yams
 
@@ -15,6 +16,10 @@ public protocol RuleProtocol: Sendable {
     /// Unique identifier for this rule.
     var id: String { get }
 
+    /// Human-readable summary of what this rule detects. Surfaced by the `rules` subcommand.
+    /// Defaults to `nil`.
+    var description: String? { get }
+
     /// Default arguments used when no YAML override is provided.
     var defaultArguments: Arguments { get }
 
@@ -23,6 +28,13 @@ public protocol RuleProtocol: Sendable {
 }
 
 public extension RuleProtocol {
+    /// Rules without an explicit description report `nil`.
+    var description: String? { nil }
+
+    /// Whether this rule takes configurable arguments (i.e. its ``Arguments`` type is not
+    /// ``EmptyArguments``).
+    var isParameterized: Bool { Arguments.self != EmptyArguments.self }
+
     /// Executes this rule, resolving arguments from raw YAML or falling back to defaults.
     func execute(file: SourceFileSyntax, context: LintContext, argsYAML: String?) {
         execute(file: file, context: context, preDecodedArgs: decodeArguments(from: argsYAML))
@@ -51,5 +63,13 @@ package extension RuleProtocol {
             return
         }
         check(file, context, args)
+    }
+
+    /// Encodes the arguments resolved from raw YAML (or the defaults when the YAML is absent or
+    /// invalid) as a JSON-serializable object. Used by the `rules` subcommand report.
+    func resolvedArgumentsJSONObject(argsYAML: String?) throws -> Any {
+        let resolved = decodeArguments(from: argsYAML) as? Arguments ?? defaultArguments
+        let data = try JSONEncoder().encode(resolved)
+        return try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
     }
 }
