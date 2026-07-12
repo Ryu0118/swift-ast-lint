@@ -1,0 +1,12 @@
+{
+  "name": "swift-ast-lint",
+  "version": "0.3.0",
+  "description": "SwiftASTLint rule authoring guide and scaffolding support for AI agents and humans.",
+  "author": {
+    "name": "Ryu0118"
+  },
+  "homepage": "https://github.com/Ryu0118/swift-ast-lint",
+  "repository": "https://github.com/Ryu0118/swift-ast-lint",
+  "license": "MIT",
+  "keywords": ["swift", "swift-syntax", "lint", "agent"]
+}

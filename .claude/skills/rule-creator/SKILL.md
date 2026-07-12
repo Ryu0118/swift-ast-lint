@@ -1,1 +1,0 @@
-../../../.agents/skills/rule-creator/SKILL.md

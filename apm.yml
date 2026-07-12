@@ -1,0 +1,17 @@
+# APM (Microsoft Agent Package Manager) producer manifest.
+# Lets consumers install swift-ast-lint's skills with a single command:
+#   apm install Ryu0118/swift-ast-lint
+# Skill sources live in skills/ (single source of truth, shared with the
+# Claude Code plugin); .apm/skills/ contains symlinks to them.
+# version tracks the CLI release version; publish-release.yml bumps it automatically.
+name: swift-ast-lint
+version: 0.3.0
+description: SwiftASTLint rule authoring and scaffolding skills for AI agents.
+author: Ryu0118
+license: MIT
+dependencies:
+  apm: []
+  mcp: []
+includes:
+  - .apm/skills/rule-creator/
+scripts: {}

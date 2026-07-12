@@ -59,20 +59,68 @@ swift build
 
 The recommended way to add rules is with the **rule-creator** [Agent Skill](https://agentskills.io). Install it, then just describe the rule you want — your AI agent writes the SwiftSyntax code, adds it to the RuleSet, and creates tests.
 
-```bash
-# via skills CLI (https://github.com/vercel-labs/skills)
-npx skills add Ryu0118/swift-ast-lint --skill rule-creator -g
+These commands install the agent skill/plugin metadata, not the `swiftastlinttool`
+binary. Install the binary separately with `curl`, Nest, mise, or from source.
 
-# or download directly to ~/.agents/skills/ (Agent Skills standard)
-mkdir -p ~/.agents/skills/rule-creator
-curl -fsSL https://raw.githubusercontent.com/Ryu0118/swift-ast-lint/main/.agents/skills/rule-creator/SKILL.md \
-  -o ~/.agents/skills/rule-creator/SKILL.md
+### Claude Code
 
-# for Claude Code: also install to ~/.claude/skills/
-mkdir -p ~/.claude/skills/rule-creator
-curl -fsSL https://raw.githubusercontent.com/Ryu0118/swift-ast-lint/main/.agents/skills/rule-creator/SKILL.md \
-  -o ~/.claude/skills/rule-creator/SKILL.md
+```sh
+/plugin marketplace add Ryu0118/swift-ast-lint
+/plugin install swift-ast-lint@swift-ast-lint
 ```
+
+### Codex
+
+Add the marketplace, then install the plugin:
+
+```sh
+codex plugin marketplace add Ryu0118/swift-ast-lint
+codex plugin add swift-ast-lint@swift-ast-lint
+```
+
+To develop against a local clone instead, point the marketplace at the checkout:
+
+```sh
+git clone https://github.com/Ryu0118/swift-ast-lint
+codex plugin marketplace add ./swift-ast-lint
+codex plugin add swift-ast-lint@swift-ast-lint
+```
+
+### APM (Agent Package Manager)
+
+With [APM](https://github.com/microsoft/apm), one command installs the skill
+into any supported harness (Claude Code, Copilot, Cursor, Codex, and more) and
+pins it in `apm.lock.yaml`:
+
+```sh
+apm install Ryu0118/swift-ast-lint
+```
+
+### GitHub CLI (`gh skill`)
+
+[GitHub CLI v2.90.0+](https://github.blog/changelog/2026-04-16-manage-agent-skills-with-github-cli/)
+ships a `gh skill` command (alias: `gh skills`). It pins to the latest release
+tag and records provenance (repo, ref, tree SHA) in the installed SKILL.md:
+
+```sh
+gh skill install Ryu0118/swift-ast-lint rule-creator --agent claude-code
+```
+
+Run `gh skill install Ryu0118/swift-ast-lint` without a skill name for
+interactive selection, and use `--agent` / `--scope` to control where skills
+land.
+
+### skills CLI (`npx skills`)
+
+The [skills CLI](https://github.com/vercel-labs/skills) installs into the
+shared `.agents/skills/` directory used by many agents:
+
+```sh
+npx skills add Ryu0118/swift-ast-lint --all
+```
+
+Use `--list` to inspect available skills first, or `-a claude-code` to target
+a specific agent.
 
 Then tell your agent:
 
