@@ -51,6 +51,18 @@ curl -fsSL https://raw.githubusercontent.com/Ryu0118/swift-ast-lint/main/install
 
 ### Step 2: Understand the rule
 
+**Check the existing rules first** — enumerate them with the `rules` subcommand instead of
+reading `Rules.swift` and the YAML side by side (requires a swift-ast-lint version that ships it):
+
+```bash
+swift run --package-path <linter-path> swift-ast-lint rules   # stable JSON: id, description, args, config state
+```
+
+Use the output to avoid duplicate rule ids and to see whether an existing rule already covers
+(or nearly covers) the request. See [references/rule-api.md](references/rule-api.md) for the
+JSON shape. If the subcommand is unavailable (older swift-ast-lint), fall back to reading
+`Sources/Rules/Rules.swift`.
+
 If the user already described the rule clearly, skip questions and start writing. Otherwise ask:
 
 - What code pattern should this catch? (concrete example)
@@ -70,6 +82,9 @@ If the user already described the rule clearly, skip questions and start writing
 5. Run `swift test --filter <RuleName>` again — all tests must pass (green)
 
 Never create the implementation before the tests exist.
+
+Set the optional `description:` parameter on new rules — it feeds the `rules` subcommand so
+agents and tooling can understand the rule without reading its source.
 
 For API reference, see [references/rule-api.md](references/rule-api.md). For test design principles and examples, see [references/testing-guide.md](references/testing-guide.md).
 
@@ -93,6 +108,9 @@ rules:
     exclude:
       - "**/*Generated.swift"
 ```
+
+After editing the YAML, verify it took effect: run the `rules` subcommand and check the rule's
+`effective_args` (and `enabled`) against what you configured.
 
 If the user declines, move on.
 
