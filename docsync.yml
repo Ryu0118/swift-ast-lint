@@ -22,7 +22,7 @@ rules:
   doc: README.md
   message: "Public Rule/RuleSet/LintContext API changed \u2014 update README (Rule
     API section) if the interface changed."
-  checksum: e6eb60e9040721b1d4cd57bffccb7e71004a5492fa05c7fa986d155dc23d0ba4
+  checksum: 3325c5fe5579dd779a9ff2ddd1d688a3bce13da9b7fa1dee4df3886d1982aea7
 - name: readme-scaffold
   sources:
   - Sources/SwiftASTLintScaffold/Scaffold.swift

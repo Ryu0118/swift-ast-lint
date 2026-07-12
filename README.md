@@ -147,6 +147,15 @@ Rule(id: "rule-id") { file, context in
 }
 ```
 
+An optional `description` summarizes what the rule detects. It is surfaced by the
+[`rules` subcommand](#listing-rules-rules-subcommand):
+
+```swift
+Rule(id: "rule-id", description: "Flags force-unwrapped optionals") { file, context in
+    // ...
+}
+```
+
 ### ParameterizedRule (YAML-configurable arguments)
 
 ```swift
@@ -160,6 +169,8 @@ ParameterizedRule(id: "large-type", defaultArguments: ThresholdArgs()) { file, c
     context.report(on: node, message: "Type too large", severity: args.severity)
 }
 ```
+
+`ParameterizedRule` accepts the same optional `description` parameter as `Rule`.
 
 `Severity` conforms to `Codable`, so it decodes directly from the YAML string `"warning"` or `"error"`.
 
@@ -214,6 +225,43 @@ swift run swift-ast-lint ./Sources ./MyModule           # multiple paths
 swift run swift-ast-lint ./Sources --config custom.yml  # custom config
 swift run swift-ast-lint --fix ./Sources                # apply autofixes
 ```
+
+Linting is the default subcommand (`swift-ast-lint lint ./Sources` is equivalent). Note: a first
+argument named exactly like a subcommand (`rules`, `lint`) dispatches to that subcommand — lint a
+directory with that name via an explicit path (`./rules`).
+
+### Listing rules (`rules` subcommand)
+
+`rules` enumerates every registered rule together with its configuration, resolved against
+`.swift-ast-lint.yml` (or `--config <path>`). The default output is a stable JSON document —
+machine-readable first, so agents and tooling can discover a linter's rules, their default and
+effective arguments, per-rule path scoping, and disabled state without reading the linter's source:
+
+```bash
+swift run swift-ast-lint rules                # JSON (default)
+swift run swift-ast-lint rules --format text  # human-readable
+```
+
+```json
+{
+  "config_path" : ".swift-ast-lint.yml",
+  "rules" : [
+    {
+      "id" : "large-type",
+      "description" : "Flags oversized type declarations",
+      "parameterized" : true,
+      "enabled" : true,
+      "default_args" : { "threshold" : 50 },
+      "effective_args" : { "threshold" : 30 },
+      "include" : [ "Sources/**" ],
+      "exclude" : [ "**/*Generated.swift" ]
+    }
+  ]
+}
+```
+
+`config_path` is `null` and every rule reports defaults when no config file is found. Rules appear
+in `RuleSet` registration order; object keys are sorted for stable diffs.
 
 ### Scaffolding tool
 
