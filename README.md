@@ -42,7 +42,7 @@ nest install Ryu0118/swift-ast-lint
 #### Mise ([jdx/mise](https://github.com/jdx/mise))
 
 ```bash
-mise use -g ubi:Ryu0118/swift-ast-lint
+mise use -g github:Ryu0118/swift-ast-lint
 ```
 
 #### Build from source
