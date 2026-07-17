@@ -1,3 +1,4 @@
+import Foundation
 import Logging
 @testable import SwiftASTLint
 import SwiftDiagnostics
@@ -22,7 +23,14 @@ func makeLintContext(
 final class CapturingLogHandler: LogHandler, @unchecked Sendable {
     var logLevel: Logger.Level = .trace
     var metadata: Logger.Metadata = [:]
-    private(set) var messages: [String] = []
+
+    // LintEngine logs from parallel asyncMap tasks, so unsynchronized appends are a data
+    // race that intermittently drops messages (flaky "progress line count" failures on CI).
+    private let lock = NSLock()
+    private var _messages: [String] = []
+    var messages: [String] {
+        lock.withLock { _messages }
+    }
 
     subscript(metadataKey key: String) -> Logger.Metadata.Value? {
         get { metadata[key] }
@@ -39,7 +47,7 @@ final class CapturingLogHandler: LogHandler, @unchecked Sendable {
         function: String,
         line: UInt,
     ) {
-        messages.append(message.description)
+        lock.withLock { _messages.append(message.description) }
     }
 }
 
