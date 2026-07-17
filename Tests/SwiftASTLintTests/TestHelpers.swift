@@ -1,5 +1,5 @@
-import Foundation
 import Logging
+import Synchronization
 @testable import SwiftASTLint
 import SwiftDiagnostics
 import SwiftParser
@@ -26,10 +26,10 @@ final class CapturingLogHandler: LogHandler, @unchecked Sendable {
 
     // LintEngine logs from parallel asyncMap tasks, so unsynchronized appends are a data
     // race that intermittently drops messages (flaky "progress line count" failures on CI).
-    private let lock = NSLock()
-    private var _messages: [String] = []
+    // LogHandler.log is synchronous, so a Mutex (not an actor) guards the buffer.
+    private let _messages = Mutex<[String]>([])
     var messages: [String] {
-        lock.withLock { _messages }
+        _messages.withLock { $0 }
     }
 
     subscript(metadataKey key: String) -> Logger.Metadata.Value? {
@@ -47,7 +47,7 @@ final class CapturingLogHandler: LogHandler, @unchecked Sendable {
         function: String,
         line: UInt,
     ) {
-        lock.withLock { _messages.append(message.description) }
+        _messages.withLock { $0.append(message.description) }
     }
 }
 
