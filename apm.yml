@@ -5,7 +5,7 @@
 # Claude Code plugin); .apm/skills/ contains symlinks to them.
 # version tracks the CLI release version; publish-release.yml bumps it automatically.
 name: swift-ast-lint
-version: 0.3.0
+version: 0.3.1
 description: SwiftASTLint rule authoring and scaffolding skills for AI agents.
 author: Ryu0118
 license: MIT
