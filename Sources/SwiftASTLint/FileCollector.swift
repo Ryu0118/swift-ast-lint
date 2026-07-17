@@ -10,7 +10,22 @@ package struct FileCollector {
     }
 
     /// Recursively collects all `.swift` files under `rootPath`, sorted alphabetically.
+    ///
+    /// When `rootPath` itself is a `.swift` file (not a directory), returns that single file.
+    /// Previously such paths were silently ignored because `FileManager.enumerator(atPath:)`
+    /// yields no entries for a non-directory path, so CLI invocations that pass individual
+    /// file paths (e.g. lint-changed-files git hooks) linted nothing at all.
     package func collectSwiftFiles(rootPath: String) throws -> [String] {
+        var isDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: rootPath, isDirectory: &isDirectory) else {
+            return []
+        }
+        guard isDirectory.boolValue else {
+            if rootPath.hasSuffix(".swift") {
+                return [URL(filePath: rootPath).standardized.path(percentEncoded: false)]
+            }
+            return []
+        }
         guard let enumerator = fileManager.enumerator(atPath: rootPath) else {
             return []
         }

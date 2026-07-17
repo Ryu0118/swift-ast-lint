@@ -51,6 +51,29 @@ struct FileCollectorTests {
         #expect(files.isEmpty)
     }
 
+    @Test("collects a single .swift file passed directly as rootPath")
+    func collectSingleSwiftFile() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
+            try "".write(toFile: "\(root)/a.swift", atomically: true, encoding: .utf8)
+
+            let files = try collector.collectSwiftFiles(rootPath: "\(root)/a.swift")
+            #expect(files.count == 1)
+            #expect(files[0].hasSuffix("a.swift"))
+        }
+    }
+
+    @Test("returns empty for a non-.swift file passed directly as rootPath")
+    func collectSingleNonSwiftFile() async throws {
+        try await FileManager.default.runInTemporaryDirectory { dir in
+            let root = dir.path(percentEncoded: false)
+            try "".write(toFile: "\(root)/c.txt", atomically: true, encoding: .utf8)
+
+            let files = try collector.collectSwiftFiles(rootPath: "\(root)/c.txt")
+            #expect(files.isEmpty)
+        }
+    }
+
     // MARK: - applyFilters
 
     @Test("include filters to matching files only")
