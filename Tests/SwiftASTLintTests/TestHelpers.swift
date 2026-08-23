@@ -3,6 +3,7 @@ import Logging
 import SwiftDiagnostics
 import SwiftParser
 import SwiftSyntax
+import Synchronization
 
 func makeLintContext(
     source: String,
@@ -22,7 +23,14 @@ func makeLintContext(
 final class CapturingLogHandler: LogHandler, @unchecked Sendable {
     var logLevel: Logger.Level = .trace
     var metadata: Logger.Metadata = [:]
-    private(set) var messages: [String] = []
+
+    // LintEngine logs from parallel asyncMap tasks, so unsynchronized appends are a data
+    // race that intermittently drops messages (flaky "progress line count" failures on CI).
+    // LogHandler.log is synchronous, so a Mutex (not an actor) guards the buffer.
+    private let _messages = Mutex<[String]>([])
+    var messages: [String] {
+        _messages.withLock { $0 }
+    }
 
     subscript(metadataKey key: String) -> Logger.Metadata.Value? {
         get { metadata[key] }
@@ -39,7 +47,7 @@ final class CapturingLogHandler: LogHandler, @unchecked Sendable {
         function: String,
         line: UInt,
     ) {
-        messages.append(message.description)
+        _messages.withLock { $0.append(message.description) }
     }
 }
 

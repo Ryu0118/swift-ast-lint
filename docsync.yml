@@ -9,7 +9,7 @@ rules:
   doc: README.md
   message: "CLI surface or config schema changed \u2014 update README (Usage, Configuration,
     Installation) if user-facing behavior changed."
-  checksum: 26203ba8a5fd8129e792d4a056f2e3f5c39c6b7212688867b3c8c66f5ba38bdd
+  checksum: 33f7689146ebd159004da7107d33ad3635ea530c2bb0b43a28f5f72f0647b7f9
 - name: readme-api
   sources:
   - Sources/SwiftASTLint/Rule.swift
@@ -42,7 +42,7 @@ rules:
   doc: CLAUDE.md
   message: "Core architecture or engine internals changed \u2014 update CLAUDE.md
     if the architecture description is affected."
-  checksum: ec00ca019eb52eaa44a93afd15a69939ac604698d31cdc50b58bb1ede50e3c88
+  checksum: 52d81925a194405db93fa307f0d05c908fabc5f7a3b0fb83dcbfaa7ba86c9732
 - name: skill-rule-api
   sources:
   - Sources/SwiftASTLint/Rule.swift
@@ -54,11 +54,10 @@ rules:
   - Sources/SwiftASTLint/SimpleFixItMessage.swift
   - Sources/SwiftASTLint/Configuration.swift
   - Sources/SwiftASTLint/RulesReport.swift
-  doc: .agents/skills/rule-creator/references/rule-api.md
+  doc: skills/rule-creator/references/rule-api.md
   message: "Rule API, YAML config schema, or rules-subcommand report shape changed
     \u2014 update the rule-creator skill's rule-api.md so agents work against the
-    current API. Copies installed under ~/.claude/skills or ~/.agents/skills must
-    be refreshed via the README install command."
+    current API."
   checksum: 36ea6af77186f7a74f097917771858cdcf59f8be5bbe4edad51f9e1ac431343f
 - name: skill-workflow
   sources:
@@ -67,14 +66,26 @@ rules:
   - Sources/SwiftASTLint/RulesCommand.swift
   - Sources/swift-ast-lint-tool/InitCommand.swift
   - Sources/swift-ast-lint-tool/SwiftASTLintTool.swift
-  doc: .agents/skills/rule-creator/SKILL.md
+  doc: skills/rule-creator/SKILL.md
   message: "CLI surface (lint/rules subcommands, scaffolding tool) changed \u2014
     update the rule-creator skill's SKILL.md workflow if commands or steps changed."
   checksum: 6555b50fb31636823d9e5f7636904ce560d32f275f96be7517b89184040a85b0
 - name: skill-testing
   sources:
   - Sources/SwiftASTLintTestSupport/**/*.swift
-  doc: .agents/skills/rule-creator/references/testing-guide.md
+  doc: skills/rule-creator/references/testing-guide.md
   message: "Test support API changed \u2014 update the rule-creator skill's testing-guide.md
     if the testing interface changed."
   checksum: 9b705ec0cb53557c1572bb4422df78f010006b2f34d8215de22cc4e903bdf226
+- name: readme-agent-integrations
+  sources:
+  - .claude/plugins/swift-ast-lint/.claude-plugin/plugin.json
+  - plugins/swift-ast-lint/.codex-plugin/plugin.json
+  - .claude-plugin/marketplace.json
+  - .agents/plugins/marketplace.json
+  - apm.yml
+  - skills/rule-creator/SKILL.md
+  doc: README.md
+  message: "Agent skill/plugin manifests changed \u2014 update README installation
+    instructions."
+  checksum: f7faa7c74abe8e535bbf4dec76bbc72b927a899a976e159ce19fd7480af4c989

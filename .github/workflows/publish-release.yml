@@ -12,7 +12,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   preflight:
@@ -155,15 +155,25 @@ jobs:
   commit-version:
     needs: [build-macos, build-linux]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       commit_sha: ${{ steps.push.outputs.sha }}
     steps:
       - uses: actions/checkout@v6
 
-      - name: Bump Version.swift
+      - name: Bump version files
         run: |
           sed -i "s/static let current = \".*\"/static let current = \"$VERSION\"/" \
             Sources/swift-ast-lint-tool/Version.swift
+          sed -i "s/^version: .*/version: $VERSION/" apm.yml
+          # Each of these files has exactly one "version" key.
+          for f in \
+            .claude/plugins/swift-ast-lint/.claude-plugin/plugin.json \
+            plugins/swift-ast-lint/.codex-plugin/plugin.json \
+            .claude-plugin/marketplace.json; do
+            sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$f"
+          done
         env:
           VERSION: ${{ inputs.version }}
 
@@ -172,7 +182,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Sources/swift-ast-lint-tool/Version.swift
+          git add Sources/swift-ast-lint-tool/Version.swift apm.yml \
+            .claude/plugins/swift-ast-lint/.claude-plugin/plugin.json \
+            plugins/swift-ast-lint/.codex-plugin/plugin.json \
+            .claude-plugin/marketplace.json
           if git diff --cached --quiet; then
             echo "Version.swift already at $VERSION, skipping commit"
           else
