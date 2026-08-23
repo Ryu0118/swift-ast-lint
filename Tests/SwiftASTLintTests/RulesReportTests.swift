@@ -4,7 +4,7 @@ import Testing
 
 @Suite("Rules report: rule metadata enumeration for the `rules` subcommand")
 struct RulesReportTests {
-    private struct DepthArgs: Codable, Sendable {
+    private struct DepthArgs: Codable {
         var warningDepth: Int = 4
         var errorDepth: Int = 6
 
@@ -157,7 +157,7 @@ struct RulesReportTests {
     // MARK: - text format
 
     @Test("text report lists ids, enabled state, and args")
-    func textReport() throws {
+    func textReport() {
         let config = Configuration(disabledRules: ["no-force-try"])
         let text = RulesReportBuilder.text(rules: makeRules(), config: config, configPath: nil)
         #expect(text.contains("no-force-try"))
@@ -168,7 +168,7 @@ struct RulesReportTests {
     }
 }
 
-@Suite("Root command dispatch: `rules` reaches the subcommand, bare paths reach LintCommand")
+@Suite("Root command dispatch: `rules` reaches the subcommand, bare paths reach LintCommand", .serialized)
 struct CommandDispatchTests {
     @Test("`rules` dispatches to RulesCommand instead of being consumed as a lint path")
     func rulesDispatchesToSubcommand() throws {
@@ -198,5 +198,15 @@ struct CommandDispatchTests {
     func explicitLintSubcommand() throws {
         let command = try Linter.parseAsRoot(["lint", "Sources/", "--fix"])
         #expect(command is LintCommand)
+    }
+
+    @Test("linter-specific config defaults can be overridden by an explicit path")
+    func configPathPrecedence() {
+        let previousDefault = Linter.defaultConfigFileName
+        defer { Linter.configure(defaultConfigFileName: previousDefault) }
+
+        Linter.configure(defaultConfigFileName: ".my-swift-linter.yml")
+        #expect(Linter.configPath(explicit: nil) == ".my-swift-linter.yml")
+        #expect(Linter.configPath(explicit: "custom.yml") == "custom.yml")
     }
 }

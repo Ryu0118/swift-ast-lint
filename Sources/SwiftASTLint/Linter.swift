@@ -33,16 +33,40 @@ public struct Linter: AsyncParsableCommand {
         defaultSubcommand: LintCommand.self,
     )
 
-    /// Rules registered via ``lint(_:)``, shared with subcommands.
+    /// Rules registered via ``lint(_:defaultConfigFileName:)``, shared with subcommands.
     static let storedRules = Mutex<RuleSet?>(nil)
+    private static let storedDefaultConfigFileName = Mutex(SwiftASTLintConstants.defaultConfigFileName)
 
-    public static func lint(_ rules: RuleSet) async {
+    /// The config file used when the command line does not provide `--config`.
+    package static var defaultConfigFileName: String {
+        storedDefaultConfigFileName.withLock { $0 }
+    }
+
+    package static func configure(defaultConfigFileName: String) {
+        storedDefaultConfigFileName.withLock { $0 = defaultConfigFileName }
+    }
+
+    package static func configPath(explicit: String?) -> String {
+        explicit ?? defaultConfigFileName
+    }
+
+    /// Starts the linter command with the registered rules.
+    ///
+    /// - Parameters:
+    ///   - rules: The rules to register with the generated linter executable.
+    ///   - defaultConfigFileName: The config file to use when `--config` is omitted. The
+    ///     default remains `.swift-ast-lint.yml` for backwards compatibility.
+    public static func lint(
+        _ rules: RuleSet,
+        defaultConfigFileName: String = SwiftASTLintConstants.defaultConfigFileName,
+    ) async {
         LoggingSystem.bootstrap { label in
             var handler = StreamLogHandler.standardError(label: label)
             handler.logLevel = .info
             return handler
         }
         storedRules.withLock { $0 = rules }
+        configure(defaultConfigFileName: defaultConfigFileName)
         do {
             var command = try parseAsRoot()
             if var asyncCommand = command as? AsyncParsableCommand {

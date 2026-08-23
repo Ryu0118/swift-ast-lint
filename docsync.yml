@@ -70,7 +70,7 @@ rules:
   doc: .agents/skills/rule-creator/SKILL.md
   message: "CLI surface (lint/rules subcommands, scaffolding tool) changed \u2014
     update the rule-creator skill's SKILL.md workflow if commands or steps changed."
-  checksum: 8097fa0ecd74a9861f2156da429f5d4677baa82383907572c48963554295b1a6
+  checksum: 6555b50fb31636823d9e5f7636904ce560d32f275f96be7517b89184040a85b0
 - name: skill-testing
   sources:
   - Sources/SwiftASTLintTestSupport/**/*.swift

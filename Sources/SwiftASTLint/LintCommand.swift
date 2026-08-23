@@ -13,7 +13,7 @@ public struct LintCommand: AsyncParsableCommand {
     var paths: [String] = ["."]
 
     @Option(name: .long, help: "Path to config file")
-    var config: String = SwiftASTLintConstants.defaultConfigFileName
+    var config: String?
 
     @Option(name: .long, help: "Path to cache directory")
     var cachePath: String?
@@ -55,10 +55,11 @@ public struct LintCommand: AsyncParsableCommand {
     // MARK: - Private
 
     private func loadConfig() -> Configuration? {
+        let configPath = Linter.configPath(explicit: config)
         do {
-            return try ConfigurationLoader().load(from: config)
+            return try ConfigurationLoader().load(from: configPath)
         } catch {
-            logger.error("Failed to load \(config): \(error)")
+            logger.error("Failed to load \(configPath): \(error)")
             return nil
         }
     }
