@@ -1,9 +1,9 @@
 import Logging
-import Synchronization
 @testable import SwiftASTLint
 import SwiftDiagnostics
 import SwiftParser
 import SwiftSyntax
+import Synchronization
 
 func makeLintContext(
     source: String,

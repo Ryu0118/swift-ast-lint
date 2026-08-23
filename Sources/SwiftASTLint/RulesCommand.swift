@@ -23,7 +23,7 @@ public struct RulesCommand: ParsableCommand {
     )
 
     @Option(name: .long, help: "Path to config file")
-    var config: String = SwiftASTLintConstants.defaultConfigFileName
+    var config: String?
 
     @Option(name: .long, help: "Output format: json (default) or text")
     var format: RulesOutputFormat = .json
@@ -37,14 +37,15 @@ public struct RulesCommand: ParsableCommand {
         }
 
         // A missing config file is a normal state (defaults-only view); a malformed one is not.
-        let loadedConfig = try ConfigurationLoader().load(from: config)
-        let configPath = loadedConfig == nil ? nil : config
+        let configPath = Linter.configPath(explicit: config)
+        let loadedConfig = try ConfigurationLoader().load(from: configPath)
+        let reportConfigPath = loadedConfig == nil ? nil : configPath
 
         switch format {
         case .json:
-            try emit(RulesReportBuilder.json(rules: rules, config: loadedConfig, configPath: configPath))
+            try emit(RulesReportBuilder.json(rules: rules, config: loadedConfig, configPath: reportConfigPath))
         case .text:
-            emit(RulesReportBuilder.text(rules: rules, config: loadedConfig, configPath: configPath))
+            emit(RulesReportBuilder.text(rules: rules, config: loadedConfig, configPath: reportConfigPath))
         }
     }
 

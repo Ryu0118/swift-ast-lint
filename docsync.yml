@@ -7,8 +7,8 @@ rules:
   - Sources/SwiftASTLint/ConfigurationLoader.swift
   - Sources/SwiftASTLint/Configuration.swift
   doc: README.md
-  message: CLI surface or config schema changed — update README (Usage, Configuration,
-    Installation) if user-facing behavior changed.
+  message: "CLI surface or config schema changed \u2014 update README (Usage, Configuration,
+    Installation) if user-facing behavior changed."
   checksum: 33f7689146ebd159004da7107d33ad3635ea530c2bb0b43a28f5f72f0647b7f9
 - name: readme-api
   sources:
@@ -20,16 +20,16 @@ rules:
   - Sources/SwiftASTLint/Diagnostic.swift
   - Sources/SwiftASTLint/Severity.swift
   doc: README.md
-  message: Public Rule/RuleSet/LintContext API changed — update README (Rule API section)
-    if the interface changed.
+  message: "Public Rule/RuleSet/LintContext API changed \u2014 update README (Rule
+    API section) if the interface changed."
   checksum: 3325c5fe5579dd779a9ff2ddd1d688a3bce13da9b7fa1dee4df3886d1982aea7
 - name: readme-scaffold
   sources:
   - Sources/SwiftASTLintScaffold/Scaffold.swift
   - Sources/SwiftASTLintScaffold/Constants.swift
   doc: README.md
-  message: Scaffold template changed — update README (init command section) if generated
-    output changed.
+  message: "Scaffold template changed \u2014 update README (init command section)
+    if generated output changed."
   checksum: 0a06d86ab9f1a12ba182f7394c5951f52ce9b7cc6b8c856b6194196f5cd4e4dc
 - name: agents-claude
   sources:
@@ -40,8 +40,8 @@ rules:
   - Sources/SwiftASTLint/LintCache.swift
   - Sources/SwiftASTLint/FixApplier.swift
   doc: CLAUDE.md
-  message: Core architecture or engine internals changed — update CLAUDE.md if the
-    architecture description is affected.
+  message: "Core architecture or engine internals changed \u2014 update CLAUDE.md
+    if the architecture description is affected."
   checksum: 52d81925a194405db93fa307f0d05c908fabc5f7a3b0fb83dcbfaa7ba86c9732
 - name: skill-rule-api
   sources:
@@ -55,9 +55,9 @@ rules:
   - Sources/SwiftASTLint/Configuration.swift
   - Sources/SwiftASTLint/RulesReport.swift
   doc: skills/rule-creator/references/rule-api.md
-  message: Rule API, YAML config schema, or rules-subcommand report shape changed
-    — update the rule-creator skill's rule-api.md so agents work against the current
-    API.
+  message: "Rule API, YAML config schema, or rules-subcommand report shape changed
+    \u2014 update the rule-creator skill's rule-api.md so agents work against the
+    current API."
   checksum: 36ea6af77186f7a74f097917771858cdcf59f8be5bbe4edad51f9e1ac431343f
 - name: skill-workflow
   sources:
@@ -67,15 +67,15 @@ rules:
   - Sources/swift-ast-lint-tool/InitCommand.swift
   - Sources/swift-ast-lint-tool/SwiftASTLintTool.swift
   doc: skills/rule-creator/SKILL.md
-  message: CLI surface (lint/rules subcommands, scaffolding tool) changed — update
-    the rule-creator skill's SKILL.md workflow if commands or steps changed.
-  checksum: 8097fa0ecd74a9861f2156da429f5d4677baa82383907572c48963554295b1a6
+  message: "CLI surface (lint/rules subcommands, scaffolding tool) changed \u2014
+    update the rule-creator skill's SKILL.md workflow if commands or steps changed."
+  checksum: 6555b50fb31636823d9e5f7636904ce560d32f275f96be7517b89184040a85b0
 - name: skill-testing
   sources:
   - Sources/SwiftASTLintTestSupport/**/*.swift
   doc: skills/rule-creator/references/testing-guide.md
-  message: Test support API changed — update the rule-creator skill's testing-guide.md
-    if the testing interface changed.
+  message: "Test support API changed \u2014 update the rule-creator skill's testing-guide.md
+    if the testing interface changed."
   checksum: 9b705ec0cb53557c1572bb4422df78f010006b2f34d8215de22cc4e903bdf226
 - name: readme-agent-integrations
   sources:
@@ -86,5 +86,6 @@ rules:
   - apm.yml
   - skills/rule-creator/SKILL.md
   doc: README.md
-  message: Agent skill/plugin manifests changed — update README installation instructions.
+  message: "Agent skill/plugin manifests changed \u2014 update README installation
+    instructions."
   checksum: f7faa7c74abe8e535bbf4dec76bbc72b927a899a976e159ce19fd7480af4c989

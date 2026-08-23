@@ -311,6 +311,15 @@ swift run swift-ast-lint rules --format text  # human-readable
 `config_path` is `null` and every rule reports defaults when no config file is found. Rules appear
 in `RuleSet` registration order; object keys are sorted for stable diffs.
 
+Generated linter executables use `.swift-ast-lint.yml` by default. A linter can choose its own
+default while keeping `--config` available for one-off overrides:
+
+```swift
+await Linter.lint(rules, defaultConfigFileName: ".my-swift-linter.yml")
+```
+
+An explicit `--config <path>` always takes precedence over the linter-specific default.
+
 ### Scaffolding tool
 
 ```bash
