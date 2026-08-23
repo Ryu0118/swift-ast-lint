@@ -1,6 +1,12 @@
 #!/bin/sh
 FILE_PATH=$(jq -r '.file_path // .tool_input.file_path // ""')
-SRCROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+
+allow() {
+  printf '{"decision":"allow"}\n'
+  exit 0
+}
+
+SRCROOT=$(git rev-parse --show-toplevel 2>/dev/null) || allow
 
 HAS_ERROR=0
 ALL_REASONS=""
@@ -58,7 +64,7 @@ fi
 if [ "$HAS_ERROR" -ne 0 ]; then
   REASON=$(printf '%b' "$ALL_REASONS" | jq -Rs .)
   printf '{"decision":"block","reason":%s}\n' "$REASON"
-  exit 2
+  exit 0
 fi
 
-exit 0
+allow
