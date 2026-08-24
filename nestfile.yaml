@@ -1,25 +1,25 @@
 nestPath: ./.nest
 targets:
 - reference: nicklockwood/SwiftFormat
-  version: 0.61.1
+  version: 0.62.1
   assetName: swiftformat.artifactbundle.zip
-  checksum: 47f7932f35c714b00430f56df1cfaf1bea0b4baae299bb2a09874cb52ee45350
+  checksum: 6595f3121e657438a24dabd9f8fecb648d3f362e5106df0968f734f5863fe404
 - reference: realm/SwiftLint
-  version: 0.63.3
+  version: 0.65.1
   assetName: SwiftLintBinary.artifactbundle.zip
-  checksum: a0a59ee28019171fb43a4278ae2f7eac610e194b4d98abf47fd6092c7aff65aa
+  checksum: c3a1d77647ca18c1b7e9be7dbc6cd4490d26422f28814b76370244ff61970869
 - reference: Ryu0118/gitnagg
   version: 0.3.0
   assetName: gitnagg-0.3.0.artifactbundle.zip
   checksum: 1a320a35e981e91efc035b4b2f7016d0e19c0afb51b7c62ba4154dc4c5ad1c75
 - reference: peripheryapp/periphery
-  version: 3.7.4
-  assetName: periphery-3.7.4.artifactbundle.zip
-  checksum: f0118adaa55a635f724a7da03810928cfaf88ae97b17c40d7496df0fba16637c
+  version: 3.8.0
+  assetName: periphery-3.8.0.artifactbundle.zip
+  checksum: a9c7bfb1483dde1f4b660bc64183161fde3b519b7392add51ec8fe8b846cf494
 - reference: Ryu0118/my-swift-linter
-  version: 0.8.0
-  assetName: my-swift-linter-0.8.0.artifactbundle.zip
-  checksum: af02483a8c2cadeac4f3f5d26e58f3aa52e191e18e4fe365851ed41a968818d6
+  version: 0.12.4
+  assetName: my-swift-linter-0.12.4.artifactbundle.zip
+  checksum: f1e3e14227b5ffc9ae44c486d99a60752f2aad9d16c33732e3c6c80f7dbf30f5
 - reference: Ryu0118/docsync
   version: 0.3.1
   assetName: docsync-0.3.1.artifactbundle.zip
