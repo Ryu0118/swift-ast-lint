@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Official swift-ast-lint skills for Claude Code",
-    "version": "0.3.1"
+    "version": "0.4.0"
   },
   "plugins": [
     {
