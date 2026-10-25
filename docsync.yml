@@ -9,7 +9,7 @@ rules:
   doc: README.md
   message: "CLI surface or config schema changed \u2014 update README (Usage, Configuration,
     Installation) if user-facing behavior changed."
-  checksum: 33f7689146ebd159004da7107d33ad3635ea530c2bb0b43a28f5f72f0647b7f9
+  checksum: f96b8a5994eca0b2a492e4119a98e77a65e60928b595cba347a663b3ac3c016a
 - name: readme-api
   sources:
   - Sources/SwiftASTLint/Rule.swift
@@ -88,4 +88,4 @@ rules:
   doc: README.md
   message: "Agent skill/plugin manifests changed \u2014 update README installation
     instructions."
-  checksum: f7faa7c74abe8e535bbf4dec76bbc72b927a899a976e159ce19fd7480af4c989
+  checksum: aafc26a840c87aab46999e379a206ae4816738f1315c660bac86db1079ff8e6b

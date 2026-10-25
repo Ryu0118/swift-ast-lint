@@ -36,6 +36,7 @@ make hooks             # Set up git hooks
 - DI via init: inject external dependencies (file system, network, etc.) through protocols in the initializer with default parameters for production implementations. No static method argument forwarding chains. Use structs, not enums.
 - Logging via `swift-log`. Package-level `logger` instance.
 - `Codable` for config/data parsing. No manual dictionary casting.
+- When documentation and the existing code disagree, follow the conventions used in the existing code, and in your final reply list every inconsistency you found between the documentation and the code.
 
 ## Testing
 
